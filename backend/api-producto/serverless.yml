@@ -1,0 +1,68 @@
+org: ${env:ORG_NAME}
+service: api-usuario-bebe
+
+provider:
+  name: aws
+  region: us-east-1
+  runtime: python3.13
+  memorySize: 1024
+  timeout: 30
+  iam:
+    role: ${env:IAM_ROLE_ARN}
+  environment:
+    TABLE_USERS: ${sls:stage}-${self:service}-usuarios
+    TABLE_TOKENS: ${sls:stage}-${self:service}-tokens
+
+functions:
+
+  registrarUsuario:
+    handler: api-usuario/RegistroUsuario.lambda_handler
+    events:
+      - http:
+          path: /usuario/signup
+          method: post
+          cors: true
+
+  loginUsuario:
+    handler: api-usuario/LoginUsuario.lambda_handler
+    events:
+      - http:
+          path: /usuario/login
+          method: post
+          cors: true
+
+  validarToken:
+    handler: api-usuario/ValidarTokenUsuario.lambda_handler
+    # No se expone públicamente
+    
+
+resources:
+  Resources:
+
+    TablaUsuarios:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TABLE_USERS}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: tenant_id
+            AttributeType: S
+          - AttributeName: user_id
+            AttributeType: S
+        KeySchema:
+          - AttributeName: tenant_id
+            KeyType: HASH
+          - AttributeName: user_id
+            KeyType: RANGE
+
+    TablaTokensAcceso:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TABLE_TOKENS}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: token
+            AttributeType: S
+        KeySchema:
+          - AttributeName: token
+            KeyType: HASH
