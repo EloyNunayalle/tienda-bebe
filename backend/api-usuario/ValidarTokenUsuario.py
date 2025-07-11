@@ -23,6 +23,7 @@ def lambda_handler(event, context):
        
         
         token = event.get('token')
+        print(not token)
 
 
         if not token:
