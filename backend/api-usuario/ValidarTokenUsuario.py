@@ -12,12 +12,15 @@ def lambda_handler(event, context):
     }
 
     try:
-        # Leer token desde el header o body
-        if 'headers' in event and 'Authorization' in event['headers']:
-            token = event['headers']['Authorization']
-        else:
-            body = json.loads(event.get('body', '{}'))
-            token = body.get('token')
+        print(json.dumps({
+            "tipo": "INFO",
+            "log_datos": {
+                "evento_recibido": event
+            }
+        }))
+        
+        token = event.get('token')
+
 
         if not token:
             return {
