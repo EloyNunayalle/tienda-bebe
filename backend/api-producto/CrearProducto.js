@@ -63,6 +63,9 @@ exports.handler = async (event) => {
       };
     }
 
+    console.log("Token tenant_id:", tokenTenantId);  
+    console.log("Request tenant_id:", body.tenant_id);
+
     // 5) Extraer campos del payload
     const {
       producto_id,
