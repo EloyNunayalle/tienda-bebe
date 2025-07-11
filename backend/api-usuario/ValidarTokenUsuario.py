@@ -20,11 +20,9 @@ def lambda_handler(event, context):
         }))
 
         print(event.get('token'))
-       
-        
-        token = event.get('token')
-        print(not token)
 
+        # Obtener token desde el evento
+        token = event.get('token')
 
         if not token:
             return {
@@ -33,8 +31,8 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Token no proporcionado'})
             }
 
+        # Conectar a DynamoDB
         dynamodb = boto3.resource('dynamodb')
-
         nombre_tabla = os.environ["TABLE_TOKENS"]
         t_tokens = dynamodb.Table(nombre_tabla)
 
@@ -48,10 +46,13 @@ def lambda_handler(event, context):
             }
 
         item = response['Item']
+        
+        # Obtener la fecha de expiración en formato '%Y-%m-%d %H:%M:%S'
         expires_str = item['expires']
         expires_dt = datetime.strptime(expires_str, '%Y-%m-%d %H:%M:%S')
-        now = datetime.now(ZoneInfo("America/Lima"))
+        now = datetime.now(ZoneInfo("America/Lima"))  # Usar la misma zona horaria para la comparación
 
+        # Comparar si el token ha expirado
         if now > expires_dt:
             return {
                 'statusCode': 403,
@@ -75,6 +76,15 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
+        print(json.dumps({
+            "tipo": "ERROR",
+            "log_datos": {
+                "mensaje": "Error al validar token",
+                "error": str(e),
+                "evento_original": event,
+                "traceback": traceback.format_exc()
+            }
+        }))
         return {
             'statusCode': 500,
             'headers': cors_headers,
