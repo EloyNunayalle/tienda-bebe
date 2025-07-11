@@ -51,6 +51,9 @@ def lambda_handler(event, context):
         expires_str = item['expires']
         expires_dt = datetime.strptime(expires_str, '%Y-%m-%d %H:%M:%S')
 
+        # Convertir expires_dt a "aware" con zona horaria de Lima
+        expires_dt = expires_dt.replace(tzinfo=ZoneInfo("America/Lima"))
+
         # Usar zona horaria de Lima para la comparación
         now = datetime.now(ZoneInfo("America/Lima"))
 
