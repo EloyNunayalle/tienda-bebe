@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const lambda = new AWS.Lambda();
-const ddb = new AWS.DynamoDB.DocumentClient();
+const dynamodb = new AWS.DynamoDB.DocumentClient();
 const uuid = require('uuid');  
 
 const TABLE_NAME = process.env.TABLE_PRODUCTOS;
@@ -17,10 +17,7 @@ exports.handler = async (event) => {
     const rawAuth = event.headers.Authorization || event.headers.authorization || '';
     console.log('🔑 raw Authorization header:', rawAuth);
 
-    let token = rawAuth;
-    if (rawAuth.toLowerCase().startsWith('bearer ')) {
-      token = rawAuth.slice(7);  // Extraemos el token sin el "Bearer"
-    }
+    let token = rawAuth; // El token ahora es el valor directamente del header sin cambios
 
     // 2) Si no hay token, rechazamos
     if (!token) {
@@ -41,6 +38,7 @@ exports.handler = async (event) => {
     const validation = JSON.parse(tokenResult.Payload);
     console.log("Token validation response:", validation); 
 
+    // Verificar si la validación del token devolvió un error
     if (validation.statusCode !== 200) {
       return {
         statusCode: 403,
