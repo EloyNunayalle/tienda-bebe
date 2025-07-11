@@ -30,7 +30,7 @@ def lambda_handler(event, context):
         )
         validation = json.loads(response['Payload'].read())
 
-        if validation['statusCode'] == 403:
+        if validation['statusCode'] != 200:
             return {
                 'statusCode': 403,
                 'headers': headers,
