@@ -77,7 +77,8 @@ def lambda_handler(event, context):
             'token': token,
             'expires': fecha_hora_exp.strftime('%Y-%m-%d %H:%M:%S'),
             'tenant_id': tenant_id,
-            'user_id': user['user_id']  # Recuperamos el `user_id` desde el usuario encontrado
+            'user_id': user['user_id'],  # Recuperamos el `user_id` desde el usuario encontrado
+            'rol': rol
         })
 
         return {

@@ -10,8 +10,8 @@ provider:
   iam:
     role: ${env:IAM_ROLE_ARN}
   environment:
-    TABLE_USERS: ${sls:stage}-${self:service}-usuarios
-    TABLE_TOKENS: ${sls:stage}-${self:service}-tokens
+    TABLE_USERS: ${sls:stage}-${self:service}-t_usuarios
+    TABLE_TOKENS: ${sls:stage}-${self:service}-t_tokens
 
 functions:
 
@@ -33,7 +33,6 @@ functions:
 
   validarToken:
     handler: ValidarTokenUsuario.lambda_handler
-    # No se expone públicamente
     
 
 resources:
@@ -57,14 +56,14 @@ resources:
           - AttributeName: user_id
             KeyType: RANGE
         GlobalSecondaryIndexes:
-          - IndexName: EmailTenantIndex  # Nombre del GSI
+          - IndexName: EmailTenantIndex  
             KeySchema:
-              - AttributeName: tenant_id  # El tenant_id como clave de partición
+              - AttributeName: tenant_id  
                 KeyType: HASH
-              - AttributeName: email     # El correo electrónico como clave de ordenamiento
+              - AttributeName: email   
                 KeyType: RANGE
             Projection:
-              ProjectionType: ALL  # Incluir todos los atributos del item
+              ProjectionType: ALL 
             ProvisionedThroughput:
               ReadCapacityUnits: 5
               WriteCapacityUnits: 5

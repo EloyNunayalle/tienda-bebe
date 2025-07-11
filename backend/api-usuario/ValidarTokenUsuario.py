@@ -28,11 +28,8 @@ def lambda_handler(event, context):
 
         dynamodb = boto3.resource('dynamodb')
 
-
-
         nombre_tabla = os.environ["TABLE_TOKENS"]
         t_tokens = dynamodb.Table(nombre_tabla)
-
 
         # Buscar el token en la tabla
         response = t_tokens.get_item(Key={'token': token})
@@ -55,6 +52,9 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Token expirado'})
             }
 
+        # Obtener el rol desde el item del token
+        rol = item.get('rol', 'cliente')  # Asignamos 'cliente' por defecto si no está definido
+
         return {
             'statusCode': 200,
             'headers': cors_headers,
@@ -62,6 +62,7 @@ def lambda_handler(event, context):
                 'message': 'Token válido',
                 'tenant_id': item['tenant_id'],
                 'user_id': item['user_id'],
+                'rol': rol,  # Incluimos el rol en la respuesta
                 'expires': item['expires']
             })
         }

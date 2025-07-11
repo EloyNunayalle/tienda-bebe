@@ -1,16 +1,17 @@
 const AWS = require('aws-sdk');
 const lambda = new AWS.Lambda();
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = 't_productos1';
+const TABLE_NAME = process.env.TABLE_PRODUCTOS;  
 
 exports.handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*', // En producción cambia a tu dominio
+    'Access-Control-Allow-Origin': '*', // En producción cambiar * por el dominio
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
   try {
+    // 1) Comprobamos si es una solicitud OPTIONS (para CORS)
     if (event.httpMethod === 'OPTIONS') {
       return {
         statusCode: 200,
@@ -19,7 +20,8 @@ exports.handler = async (event) => {
       };
     }
 
-    const { producto_id, producto_datos } = JSON.parse(event.body || '{}');
+    // 2) Parsear el body de la solicitud
+    const { producto_id, producto_datos, tenant_id: requestTenantId } = JSON.parse(event.body || '{}');
     const token = event.headers.Authorization || event.headers.authorization;
 
     if (!token) {
@@ -30,75 +32,76 @@ exports.handler = async (event) => {
       };
     }
 
-    if (!producto_id || !producto_datos || typeof producto_datos !== 'object') {
+    if (!producto_id) {
       return {
         statusCode: 400,
         headers,
-        body: JSON.stringify({ error: 'Faltan datos obligatorios o formato incorrecto' })
+        body: JSON.stringify({ error: 'Falta producto_id' })
       };
     }
 
+    // 3) Validar el token (invocar la función Lambda que valida el token)
     const tokenResult = await lambda.invoke({
-      FunctionName: 'api-bebes-dev-validarUsuario',
+      FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,  // Usamos la función Lambda para validar el token
       InvocationType: 'RequestResponse',
       Payload: JSON.stringify({ token })
     }).promise();
 
-    console.log('🔍 tokenResult.Payload:', tokenResult.Payload);
     const validation = JSON.parse(tokenResult.Payload);
 
-    if (!validation.body) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'Respuesta inválida de ValidarTokenUsuario' })
-      };
-    }
-
-    let data;
-    try {
-      data = JSON.parse(validation.body);
-    } catch (e) {
-      return {
-        statusCode: 500,
-        headers,
-        body: JSON.stringify({ error: 'Respuesta de validación no es JSON válido' })
-      };
-    }
-
-    if (validation.statusCode === 403 || data.rol !== 'admin') {
+    if (!validation.body || validation.statusCode === 403) {
       return {
         statusCode: 403,
         headers,
-        body: JSON.stringify({ error: 'No autorizado: solo administradores pueden modificar productos' })
+        body: JSON.stringify({ error: 'Token inválido' })
       };
     }
 
-    const result = await dynamodb.scan({
-      TableName: TABLE_NAME,
-      FilterExpression: 'producto_id = :pid',
-      ExpressionAttributeValues: { ':pid': producto_id }
-    }).promise();
+    const { tenant_id: tokenTenantId, rol: userRol } = JSON.parse(validation.body);  // Obtener tenant_id y rol del token
 
-    const item = result.Items[0];
-    if (!item) {
+    // 4) Verificar que el tenant_id del body coincida con el tenant_id del token
+    if (requestTenantId !== tokenTenantId) {
       return {
-        statusCode: 404,
+        statusCode: 403,
         headers,
-        body: JSON.stringify({ error: 'Producto no encontrado' })
+        body: JSON.stringify({ error: 'El tenant_id del token no coincide con el proporcionado en la solicitud' })
       };
     }
 
-    const updateExpr = 'set ' + Object.keys(producto_datos).map(k => `${k} = :${k}`).join(', ');
-    const exprAttrVals = {};
-    for (let k in producto_datos) {
-      exprAttrVals[`:${k}`] = producto_datos[k];
+    // 5) Validar que el rol del usuario sea 'admin'
+    if (userRol !== 'admin') {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Solo los administradores pueden modificar productos' })
+      };
     }
 
+    // 6) Construir dinámicamente la expresión de actualización de DynamoDB
+    const updateExprParts = [];
+    const exprAttrVals = {};
+
+    // Solo incluimos los campos que están presentes en producto_datos
+    for (let key in producto_datos) {
+      updateExprParts.push(`${key} = :${key}`);
+      exprAttrVals[`:${key}`] = producto_datos[key];
+    }
+
+    if (updateExprParts.length === 0) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'No se proporcionaron datos para actualizar' })
+      };
+    }
+
+    const updateExpr = 'set ' + updateExprParts.join(', ');
+
+    // 7) Actualizar el producto en la base de datos
     const updateResult = await dynamodb.update({
       TableName: TABLE_NAME,
       Key: {
-        tenant_id: item.tenant_id,
+        tenant_id: tokenTenantId,  // Usar el tenant_id del token
         producto_id: producto_id
       },
       UpdateExpression: updateExpr,
@@ -106,6 +109,7 @@ exports.handler = async (event) => {
       ReturnValues: 'UPDATED_NEW'
     }).promise();
 
+    // 8) Responder éxito
     return {
       statusCode: 200,
       headers,

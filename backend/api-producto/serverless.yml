@@ -1,68 +1,75 @@
 org: ${env:ORG_NAME}
-service: api-usuario-bebe
+service: api-producto-bebe
 
 provider:
   name: aws
   region: us-east-1
-  runtime: python3.13
+  runtime: nodejs20.x
   memorySize: 1024
   timeout: 30
   iam:
     role: ${env:IAM_ROLE_ARN}
   environment:
-    TABLE_USERS: ${sls:stage}-${self:service}-usuarios
-    TABLE_TOKENS: ${sls:stage}-${self:service}-tokens
+    TABLE_PRODUCTOS: ${sls:stage}-${self:service}-t_productos
+    VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-ValidarTokenUsuario
 
 functions:
-
-  registrarUsuario:
-    handler: api-usuario/RegistroUsuario.lambda_handler
+  listarProducto:
+    handler: ListarProducto.handler
     events:
       - http:
-          path: /usuario/signup
+          path: /producto/listar
           method: post
           cors: true
 
-  loginUsuario:
-    handler: api-usuario/LoginUsuario.lambda_handler
+  crearProducto:
+    handler: CrearProducto.handler
     events:
       - http:
-          path: /usuario/login
+          path: /producto/crear
           method: post
           cors: true
 
-  validarToken:
-    handler: api-usuario/ValidarTokenUsuario.lambda_handler
-    # No se expone públicamente
-    
+  buscarProducto:
+    handler: BuscarProducto.handler
+    events:
+      - http:
+          path: /producto/buscar
+          method: post
+          cors: true
+
+  modificarProducto:
+    handler: ModificarProducto.handler
+    events:
+      - http:
+          path: /producto/modificar
+          method: put
+          cors: true
+
+  eliminarProducto:
+    handler: EliminarProducto.handler
+    events:
+      - http:
+          path: /producto/eliminar
+          method: delete
+          cors: true
 
 resources:
   Resources:
-
-    TablaUsuarios:
+    TablaProductos:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: ${self:provider.environment.TABLE_USERS}
+        TableName: ${self:provider.environment.TABLE_PRODUCTOS}
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: tenant_id
             AttributeType: S
-          - AttributeName: user_id
+          - AttributeName: producto_id
             AttributeType: S
         KeySchema:
           - AttributeName: tenant_id
             KeyType: HASH
-          - AttributeName: user_id
+          - AttributeName: producto_id
             KeyType: RANGE
-
-    TablaTokensAcceso:
-      Type: AWS::DynamoDB::Table
-      Properties:
-        TableName: ${self:provider.environment.TABLE_TOKENS}
-        BillingMode: PAY_PER_REQUEST
-        AttributeDefinitions:
-          - AttributeName: token
-            AttributeType: S
-        KeySchema:
-          - AttributeName: token
-            KeyType: HASH
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
