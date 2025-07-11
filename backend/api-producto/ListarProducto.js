@@ -5,7 +5,7 @@ const TABLE_NAME = process.env.TABLE_PRODUCTOS;
 
 exports.handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*', // Cambiar * por tu dominio en producción
+    'Access-Control-Allow-Origin': '*', 
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
@@ -15,10 +15,7 @@ exports.handler = async (event) => {
     const rawAuth = event.headers.Authorization || event.headers.authorization || '';
     console.log('🔑 raw Authorization header:', rawAuth);
 
-    let token = rawAuth;
-    if (rawAuth.toLowerCase().startsWith('bearer ')) {
-      token = rawAuth.slice(7);  // Extraemos el token sin el "Bearer"
-    }
+    let token = rawAuth; // Usamos el token directamente sin el prefijo 'Bearer'
 
     // Si no hay token, rechazamos
     if (!token) {
@@ -37,7 +34,9 @@ exports.handler = async (event) => {
     }).promise();
 
     const validation = JSON.parse(tokenResult.Payload);
+    console.log("Token validation response:", validation);
 
+    // Verificar si la validación del token devolvió un error
     if (validation.statusCode !== 200) {
       return {
         statusCode: 403,
@@ -83,18 +82,19 @@ exports.handler = async (event) => {
     };
 
     if (start_key) {
-      params.ExclusiveStartKey = start_key;
+      params.ExclusiveStartKey = start_key;  // Para manejar la paginación
     }
 
     // Realizar la consulta
     const response = await dynamodb.scan(params).promise();
 
+    // Responder con los productos y el lastEvaluatedKey para la paginación
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
         productos: response.Items,
-        lastEvaluatedKey: response.LastEvaluatedKey || null
+        lastEvaluatedKey: response.LastEvaluatedKey || null  // Para manejar la paginación
       })
     };
 
