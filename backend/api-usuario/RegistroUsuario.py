@@ -32,7 +32,7 @@ def lambda_handler(event, context):
         dynamodb = boto3.resource('dynamodb')
 
         # Definir la tabla de usuarios
-        nombre_tabla = os.environ["TABLE_NAME"]
+        nombre_tabla = os.environ["TABLE_USERS"]
         t_usuarios = dynamodb.Table(nombre_tabla)
 
         # Usar query con GSI para buscar por tenant_id y email
