@@ -15,7 +15,7 @@ provider:
 
 functions:
   listarCompra:
-    handler: ListarCompra.handler
+    handler: ListarCompra.lambda_handler        # archivo .función
     events:
       - http:
           path: /compra/listar
@@ -23,7 +23,7 @@ functions:
           cors: true
 
   registrarCompra:
-    handler: RegistrarCompra.handler
+    handler: RegistrarCompra.lambda_handler     # archivo .función
     events:
       - http:
           path: /compra/registrar
@@ -39,24 +39,24 @@ resources:
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           - AttributeName: tenant_id
-            AttributeType: S  
+            AttributeType: S
           - AttributeName: compra_id
             AttributeType: S
-          - AttributeName: user_id 
-            AttributeType: S  
+          - AttributeName: user_id
+            AttributeType: S
         KeySchema:
           - AttributeName: tenant_id
-            KeyType: HASH  
+            KeyType: HASH
           - AttributeName: compra_id
-            KeyType: RANGE  
+            KeyType: RANGE
         StreamSpecification:
           StreamViewType: NEW_IMAGE
         GlobalSecondaryIndexes:
-          - IndexName: idx_usuario  
+          - IndexName: idx_usuario
             KeySchema:
               - AttributeName: tenant_id
-                KeyType: HASH  
+                KeyType: HASH
               - AttributeName: user_id
-                KeyType: RANGE  
+                KeyType: RANGE
             Projection:
-              ProjectionType: ALL  
+              ProjectionType: ALL
