@@ -1,11 +1,11 @@
 const AWS = require('aws-sdk');
 const lambda = new AWS.Lambda();
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = process.env.TABLE_PRODUCTOS;  
+const TABLE_NAME = process.env.TABLE_PRODUCTOS;
 
 exports.handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*', // En producción cambiar * por el dominio
+    'Access-Control-Allow-Origin': '*', 
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
@@ -22,7 +22,7 @@ exports.handler = async (event) => {
 
     // 2) Parsear el body de la solicitud
     const { producto_id, producto_datos, tenant_id: requestTenantId } = JSON.parse(event.body || '{}');
-    const token = event.headers.Authorization || event.headers.authorization;
+    const token = event.headers.Authorization || event.headers.authorization;  // Aquí obtenemos el token directamente
 
     if (!token) {
       return {
