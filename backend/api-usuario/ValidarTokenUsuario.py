@@ -20,10 +20,9 @@ def lambda_handler(event, context):
             }
         }))
 
-        print(event.get('token'))
-
         # Obtener token desde el evento
         token = event.get('token')
+        print("Token recibido:", token)
 
         if not token:
             return {
@@ -47,11 +46,13 @@ def lambda_handler(event, context):
             }
 
         item = response['Item']
-        
+
         # Obtener la fecha de expiración en formato '%Y-%m-%d %H:%M:%S'
         expires_str = item['expires']
         expires_dt = datetime.strptime(expires_str, '%Y-%m-%d %H:%M:%S')
-        now = datetime.now(ZoneInfo("America/Lima"))  # Usar la misma zona horaria para la comparación
+
+        # Usar zona horaria de Lima para la comparación
+        now = datetime.now(ZoneInfo("America/Lima"))
 
         # Comparar si el token ha expirado
         if now > expires_dt:
@@ -77,6 +78,7 @@ def lambda_handler(event, context):
         }
 
     except Exception as e:
+        # Log de error
         print(json.dumps({
             "tipo": "ERROR",
             "log_datos": {
