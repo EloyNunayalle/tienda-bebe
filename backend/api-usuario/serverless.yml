@@ -16,7 +16,7 @@ provider:
 functions:
 
   registrarUsuario:
-    handler: api-usuario/RegistroUsuario.lambda_handler
+    handler: RegistroUsuario.lambda_handler
     events:
       - http:
           path: /usuario/signup
@@ -24,7 +24,7 @@ functions:
           cors: true
 
   loginUsuario:
-    handler: api-usuario/LoginUsuario.lambda_handler
+    handler: LoginUsuario.lambda_handler
     events:
       - http:
           path: /usuario/login
@@ -32,7 +32,7 @@ functions:
           cors: true
 
   validarToken:
-    handler: api-usuario/ValidarTokenUsuario.lambda_handler
+    handler: ValidarTokenUsuario.lambda_handler
     # No se expone públicamente
     
 
@@ -49,11 +49,25 @@ resources:
             AttributeType: S
           - AttributeName: user_id
             AttributeType: S
+          - AttributeName: email
+            AttributeType: S
         KeySchema:
           - AttributeName: tenant_id
             KeyType: HASH
           - AttributeName: user_id
             KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: EmailTenantIndex  # Nombre del GSI
+            KeySchema:
+              - AttributeName: tenant_id  # El tenant_id como clave de partición
+                KeyType: HASH
+              - AttributeName: email     # El correo electrónico como clave de ordenamiento
+                KeyType: RANGE
+            Projection:
+              ProjectionType: ALL  # Incluir todos los atributos del item
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
 
     TablaTokensAcceso:
       Type: AWS::DynamoDB::Table

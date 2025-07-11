@@ -1,7 +1,8 @@
 const AWS = require('aws-sdk');
 const lambda = new AWS.Lambda();
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = 't_productos1';
+const TABLE_NAME = process.env.TABLE_PRODUCTOS;
+
 
 exports.handler = async (event) => {
   const headers = {
@@ -32,7 +33,7 @@ exports.handler = async (event) => {
     }
 
     const tokenResult = await lambda.invoke({
-      FunctionName: 'api-bebes-dev-validarUsuario',
+      FunctionName: process.env.VALIDAR_FUNC_NAME,
       InvocationType: 'RequestResponse',
       Payload: JSON.stringify({ token })
     }).promise();
