@@ -18,6 +18,9 @@ def lambda_handler(event, context):
                 "evento_recibido": event
             }
         }))
+
+        print(event.get('token'))
+       
         
         token = event.get('token')
 
