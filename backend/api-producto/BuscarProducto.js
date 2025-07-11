@@ -15,12 +15,8 @@ exports.handler = async (event) => {
     const rawAuth = event.headers.Authorization || event.headers.authorization || '';
     console.log('🔑 raw Authorization header:', rawAuth);
 
+    // Si no hay un token proporcionado, rechazamos inmediatamente
     let token = rawAuth;
-    if (rawAuth.toLowerCase().startsWith('bearer ')) {
-      token = rawAuth.slice(7);  // Extraemos el token sin el "Bearer"
-    }
-
-    // 2) Si no hay token, rechazamos
     if (!token) {
       return {
         statusCode: 403,
@@ -29,16 +25,17 @@ exports.handler = async (event) => {
       };
     }
 
-    // 3) Validar el token (invocar la función Lambda que valida el token)
+    // 2) Validar el token (invocar la función Lambda que valida el token)
     const tokenResult = await lambda.invoke({
-      FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,  
+      FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,  // Nombre de la función Lambda para validar el token
       InvocationType: 'RequestResponse',
       Payload: JSON.stringify({ token })
     }).promise();
 
     const validation = JSON.parse(tokenResult.Payload);
+    console.log("Token validation response:", validation); 
 
-    // 4) Verificar que la respuesta del token es válida
+    // 3) Verificar si la validación del token devolvió un error
     if (validation.statusCode !== 200) {
       return {
         statusCode: 403,
@@ -47,14 +44,14 @@ exports.handler = async (event) => {
       };
     }
 
-    console.log(' Token validado:', validation.body);  
+    // Desestructurar tenant_id, rol, user_id desde el body de la validación
+    const { tenant_id: tokenTenantId, rol: userRol } = JSON.parse(validation.body);
 
-    const { tenant_id: tokenTenantId, rol: userRol } = JSON.parse(validation.body);  // Obtener tenant_id 
-
-    // 5) Parsear el body JSON
+    // 4) Parsear el body JSON
     let body;
     try {
       body = JSON.parse(event.body);
+      console.log('7) Body del producto:', body); // Log de body del producto
     } catch (err) {
       console.error('❌ Error parseando body:', err);
       return {
@@ -64,6 +61,7 @@ exports.handler = async (event) => {
       };
     }
 
+    // 5) Extraer tenant_id y producto_id
     const { tenant_id: requestTenantId, producto_id } = body;
 
     // 6) Validación de datos
