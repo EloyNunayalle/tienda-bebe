@@ -35,6 +35,8 @@ exports.handler = async (event) => {
       Payload: JSON.stringify({ token })
     }).promise();
 
+    console.log(JSON.stringify({ token }))
+
     const validation = JSON.parse(tokenResult.Payload);
     console.log("Token validation response:", validation); 
 
