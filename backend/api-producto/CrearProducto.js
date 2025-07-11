@@ -1,3 +1,4 @@
+const AWS = require('aws-sdk');
 const lambda = new AWS.Lambda();
 const ddb = new AWS.DynamoDB.DocumentClient();
 const uuid = require('uuid');  
