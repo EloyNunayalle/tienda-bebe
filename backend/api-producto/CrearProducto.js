@@ -32,7 +32,7 @@ exports.handler = async (event) => {
     const tokenResult = await lambda.invoke({
       FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,  // Nombre de la función Lambda para validar el token
       InvocationType: 'RequestResponse',
-      Payload: token
+      Payload: JSON.stringify({ token })
     }).promise();
 
     console.log(JSON.stringify({ token }))
