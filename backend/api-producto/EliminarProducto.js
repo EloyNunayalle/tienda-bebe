@@ -1,11 +1,13 @@
 const AWS = require('aws-sdk');
 const lambda = new AWS.Lambda();
 const dynamodb = new AWS.DynamoDB.DocumentClient();
+const uuid = require('uuid');  
+
 const TABLE_NAME = process.env.TABLE_PRODUCTOS;
 
 exports.handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*', // Cambiar * por tu dominio en producción
+    'Access-Control-Allow-Origin': '*', 
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
@@ -15,10 +17,7 @@ exports.handler = async (event) => {
     const rawAuth = event.headers.Authorization || event.headers.authorization || '';
     console.log('🔑 raw Authorization header:', rawAuth);
 
-    let token = rawAuth;
-    if (rawAuth.toLowerCase().startsWith('bearer ')) {
-      token = rawAuth.slice(7);  // Extraemos el token sin el "Bearer"
-    }
+    let token = rawAuth;  // Usamos el token directamente sin procesarlo
 
     // 2) Si no hay token, rechazamos
     if (!token) {
@@ -37,7 +36,9 @@ exports.handler = async (event) => {
     }).promise();
 
     const validation = JSON.parse(tokenResult.Payload);
+    console.log("Token validation response:", validation); 
 
+    // 4) Verificar si la validación del token devolvió un error
     if (validation.statusCode !== 200) {
       return {
         statusCode: 403,
@@ -48,7 +49,7 @@ exports.handler = async (event) => {
 
     const { tenant_id: tokenTenantId, rol: userRol, user_id: userId } = JSON.parse(validation.body);  // Obtener tenant_id, rol y user_id del token
 
-    // 4) Parsear el body JSON
+    // 5) Parsear el body JSON
     let body;
     try {
       body = JSON.parse(event.body);
@@ -61,10 +62,13 @@ exports.handler = async (event) => {
       };
     }
 
-    // 5) Extraer campos del payload
+    console.log("Token tenant_id:", tokenTenantId);  
+    console.log("Request tenant_id:", body.tenant_id);
+
+    // 6) Extraer campos del payload
     const { producto_id, tenant_id } = body;
 
-    // 6) Validaciones mínimas
+    // 7) Validaciones mínimas
     if (!producto_id || !tenant_id) {
       return {
         statusCode: 400,
@@ -73,7 +77,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // 7) Validar que el tenant_id coincida con el del token
+    // 8) Validar que el tenant_id coincida con el del token
     if (tenant_id !== tokenTenantId) {
       return {
         statusCode: 403,
@@ -82,7 +86,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // 8) Validar que el rol sea 'admin'
+    // 9) Validar que el rol sea 'admin'
     if (userRol !== 'admin') {
       return {
         statusCode: 403,
@@ -91,11 +95,11 @@ exports.handler = async (event) => {
       };
     }
 
-    // 9) Eliminar el producto utilizando tenant_id y producto_id
+    // 10) Eliminar el producto utilizando tenant_id y producto_id
     const result = await dynamodb.get({
       TableName: TABLE_NAME,
       Key: {
-        tenant_id: tenant_id,  // Usamos el tenant_id
+        tenant_id: tenant_id,  // Usamos tenant_id
         producto_id: producto_id  // Usamos el producto_id
       }
     }).promise();
@@ -109,7 +113,7 @@ exports.handler = async (event) => {
       };
     }
 
-    // 10) Eliminar el producto
+    // 11) Eliminar el producto
     await dynamodb.delete({
       TableName: TABLE_NAME,
       Key: {
@@ -118,7 +122,7 @@ exports.handler = async (event) => {
       }
     }).promise();
 
-    // 11) Responder éxito
+    // 12) Responder éxito
     return {
       statusCode: 200,
       headers,
