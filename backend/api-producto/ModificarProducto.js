@@ -1,4 +1,4 @@
-const AWS = require('aws-sdk');
+const AWS   = require('aws-sdk');
 const lambda = new AWS.Lambda();
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const TABLE_NAME = process.env.TABLE_PRODUCTOS;
@@ -11,146 +11,78 @@ exports.handler = async (event) => {
   };
 
   try {
-    // Obtener el token desde el header
-    const rawAuth = event.headers.Authorization || event.headers.authorization || '';
-    console.log('🔑 raw Authorization header:', rawAuth);
-
-    let token = rawAuth; // Usamos el token directamente sin el prefijo 'Bearer'
-
-    // Si no hay token, rechazamos
-    if (!token) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ error: 'Token no proporcionado' })
-      };
+    /* ---------- 1. Pre-flight CORS ---------- */
+    if (event.httpMethod === 'OPTIONS') {
+      return { statusCode: 200, headers, body: JSON.stringify({ message: 'Preflight OK' }) };
     }
 
-    // Validar el token (invocar la función Lambda que valida el token)
+    /* ---------- 2. Token ---------- */
+    const rawAuth = event.headers.Authorization || event.headers.authorization || '';
+    if (!rawAuth) {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Token no proporcionado' }) };
+    }
+    const token = rawAuth;                       // sin “Bearer ”
+
+    /* ---------- 3. Validar token ---------- */
     const tokenResult = await lambda.invoke({
-      FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,  // Nombre de la función Lambda para validar el token
-      InvocationType: 'RequestResponse',
-      Payload: JSON.stringify({ token })
+      FunctionName   : process.env.VALIDAR_TOKEN_FUNCTION_NAME,
+      InvocationType : 'RequestResponse',
+      Payload        : JSON.stringify({ token })
     }).promise();
 
     const validation = JSON.parse(tokenResult.Payload);
-    console.log("Token validation response:", validation);
-
-    // Verificar si la validación del token devolvió un error
     if (validation.statusCode !== 200) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ error: 'Token inválido' })
-      };
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Token inválido' }) };
     }
 
-    const { tenant_id: tokenTenantId } = JSON.parse(validation.body);  // Obtener tenant_id del token
+    /* ---------- 4. Datos del token ---------- */
+    const { tenant_id: tokenTenantId, rol: userRol } = JSON.parse(validation.body);
 
-    // Parsear el body JSON
+    if (userRol !== 'admin') {
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'Solo los administradores pueden modificar productos' }) };
+    }
+
+    /* ---------- 5. Parsear body ---------- */
     let body;
-    try {
-      body = JSON.parse(event.body);
-    } catch (err) {
-      console.error('❌ Error parseando body:', err);
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ message: 'Invalid JSON body' })
-      };
-    }
+    try { body = JSON.parse(event.body); }
+    catch { return { statusCode: 400, headers, body: JSON.stringify({ error: 'Invalid JSON body' }) }; }
 
-    const { tenant_id: requestTenantId, producto_id, producto_datos } = body;
+    const { producto_id, producto_datos = {}, tenant_id: requestTenantId } = body;
 
-    // Validación de datos
-    if (!producto_id) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Falta producto_id' })
-      };
-    }
-
-    if (!requestTenantId) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'Falta tenant_id en la solicitud' })
-      };
-    }
-
-    // Verificar que el tenant_id del token coincida con el tenant_id de la solicitud
+    if (!producto_id)      return { statusCode: 400, headers, body: JSON.stringify({ error: 'Falta producto_id' }) };
+    if (!requestTenantId)  return { statusCode: 400, headers, body: JSON.stringify({ error: 'Falta tenant_id en la solicitud' }) };
     if (requestTenantId !== tokenTenantId) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ error: 'El tenant_id del token no coincide con el proporcionado en la solicitud' })
-      };
+      return { statusCode: 403, headers, body: JSON.stringify({ error: 'El tenant_id del token no coincide con el proporcionado en la solicitud' }) };
     }
 
-    // Parámetros de la consulta de DynamoDB
-    const params = {
-      TableName: TABLE_NAME,
-      Key: {
-        tenant_id: requestTenantId,  // Usar tenant_id del request
-        producto_id: producto_id  // Buscar por producto_id
-      }
-    };
+    /* ---------- 6. Construir UpdateExpression ---------- */
+    const exprNames = {};
+    const exprVals  = {};
+    const sets      = [];
 
-    // Realizar la consulta
-    const result = await dynamodb.get(params).promise();
-
-    // Verificar si el producto existe
-    if (!result.Item) {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Producto no encontrado' })
-      };
+    for (const key in producto_datos) {
+      const alias = key === 'name' ? '#name' : key;      // alias para la palabra reservada “name”
+      const valueKey = `:${key}`;
+      sets.push(`${alias} = ${valueKey}`);
+      exprVals[valueKey] = producto_datos[key];
+      if (key === 'name') exprNames['#name'] = 'name';
     }
 
-    // 6) Construir dinámicamente la expresión de actualización de DynamoDB
-    const updateExprParts = [];
-    const exprAttrVals = {};
-    const exprAttrNames = {};  // Usamos un objeto para mapear los nombres de atributos reservados
-
-    // Solo incluimos los campos que están presentes en producto_datos
-    for (let key in producto_datos) {
-      // Usar alias si el atributo es 'name' (reservado)
-      if (key === 'name') {
-        exprAttrNames['#name'] = key;
-        updateExprParts.push(`#name = :name`);
-        exprAttrVals[':name'] = producto_datos[key];  // Aseguramos que :name esté definido
-      } else {
-        updateExprParts.push(`${key} = :${key}`);
-        exprAttrVals[`:${key}`] = producto_datos[key];
-      }
+    if (sets.length === 0) {
+      return { statusCode: 400, headers, body: JSON.stringify({ error: 'No se proporcionaron datos para actualizar' }) };
     }
 
-    if (updateExprParts.length === 0) {
-      return {
-        statusCode: 400,
-        headers,
-        body: JSON.stringify({ error: 'No se proporcionaron datos para actualizar' })
-      };
-    }
-
-    const updateExpr = 'set ' + updateExprParts.join(', ');
-
-    // 7) Actualizar el producto en la base de datos
+    /* ---------- 7. Update DynamoDB ---------- */
     const updateResult = await dynamodb.update({
-      TableName: TABLE_NAME,
-      Key: {
-        tenant_id: tokenTenantId,  // Usar el tenant_id del token
-        producto_id: producto_id
-      },
-      UpdateExpression: updateExpr,
-      ExpressionAttributeNames: exprAttrNames,  // Pasar los nombres de atributos
-      ExpressionAttributeValues: exprAttrVals,
-      ReturnValues: 'UPDATED_NEW'
+      TableName : TABLE_NAME,
+      Key       : { tenant_id: tokenTenantId, producto_id },
+      UpdateExpression         : 'SET ' + sets.join(', '),
+      ExpressionAttributeNames : Object.keys(exprNames).length ? exprNames : undefined,
+      ExpressionAttributeValues: exprVals,
+      ReturnValues             : 'UPDATED_NEW'
     }).promise();
 
-    // 8) Responder éxito
+    /* ---------- 8. Éxito ---------- */
     return {
       statusCode: 200,
       headers,
@@ -162,10 +94,6 @@ exports.handler = async (event) => {
 
   } catch (err) {
     console.error('ERROR en ModificarProducto:', err);
-    return {
-      statusCode: 500,
-      headers,
-      body: JSON.stringify({ error: err.message || 'Error interno del servidor' })
-    };
+    return { statusCode: 500, headers, body: JSON.stringify({ error: err.message || 'Error interno del servidor' }) };
   }
 };
