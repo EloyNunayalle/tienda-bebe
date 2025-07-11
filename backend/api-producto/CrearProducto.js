@@ -39,6 +39,7 @@ exports.handler = async (event) => {
     }).promise();
 
     const validation = JSON.parse(tokenResult.Payload);
+    console.log("Token validation response:", validation); 
 
     if (!validation.body || validation.statusCode === 403) {
       return {
