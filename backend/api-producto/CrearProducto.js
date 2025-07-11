@@ -87,7 +87,7 @@ exports.handler = async (event) => {
     }
 
     // 7) Validar que el tenant_id coincida con el del token
-    if (tenant_id !== tokenTenantId) {
+    if (body.tenant_id !== tokenTenantId) {
       return {
         statusCode: 403,
         headers,
