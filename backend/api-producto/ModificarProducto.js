@@ -5,7 +5,7 @@ const TABLE_NAME = process.env.TABLE_PRODUCTOS;
 
 exports.handler = async (event) => {
   const headers = {
-    'Access-Control-Allow-Origin': '*', 
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
@@ -60,7 +60,7 @@ exports.handler = async (event) => {
       };
     }
 
-    const { tenant_id: requestTenantId, producto_id } = body;
+    const { tenant_id: requestTenantId, producto_id, producto_datos } = body;
 
     // Validación de datos
     if (!producto_id) {
@@ -109,24 +109,24 @@ exports.handler = async (event) => {
       };
     }
 
-    // Si el atributo 'name' está siendo actualizado, usar un alias para evitar conflicto con la palabra reservada
+    // 6) Construir dinámicamente la expresión de actualización de DynamoDB
     const updateExprParts = [];
     const exprAttrVals = {};
     const exprAttrNames = {};  // Usamos un objeto para mapear los nombres de atributos reservados
 
     // Solo incluimos los campos que están presentes en producto_datos
-    for (let key in body.producto_datos) {
+    for (let key in producto_datos) {
       // Usar alias si el atributo es 'name' (reservado)
       if (key === 'name') {
         exprAttrNames['#name'] = key;
         updateExprParts.push(`#name = :name`);
+        exprAttrVals[':name'] = producto_datos[key];  // Aseguramos que :name esté definido
       } else {
         updateExprParts.push(`${key} = :${key}`);
-        exprAttrVals[`:${key}`] = body.producto_datos[key];
+        exprAttrVals[`:${key}`] = producto_datos[key];
       }
     }
 
-    // Si no hay campos para actualizar, retornamos error
     if (updateExprParts.length === 0) {
       return {
         statusCode: 400,
