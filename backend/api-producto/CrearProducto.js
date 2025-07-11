@@ -44,7 +44,7 @@ exports.handler = async (event) => {
     // Verificar si la validación del token devolvió un error
     if (validation.statusCode !== 200) {
       return {
-        statusCode: 403,
+        statusCode: validation.statusCode,
         headers,
         body: JSON.stringify({ error: 'Token inválido' })
       };
