@@ -1,6 +1,6 @@
 const AWS = require('aws-sdk');
 const lambda = new AWS.Lambda();
-const dynamodb = new AWS.DynamoDB.DocumentClient();
+const dynamodb = new AWS.DynamoDB.DocumentClient();  // Definir correctamente el DocumentClient
 const uuid = require('uuid');  
 
 const TABLE_NAME = process.env.TABLE_PRODUCTOS;
@@ -129,7 +129,8 @@ exports.handler = async (event) => {
       user_id: userId  // Guardamos el user_id del usuario que crea el producto
     };
 
-    await ddb.put({
+    // Asegurarse de usar la variable `dynamodb` correctamente (definida como DocumentClient)
+    await dynamodb.put({
       TableName: TABLE_NAME,
       Item: item,
     }).promise();
