@@ -11,7 +11,7 @@ provider:
     role: ${env:IAM_ROLE_ARN}
   environment:
     TABLE_COMPRAS: ${sls:stage}-${self:service}-t_compras
-    VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-ValidarTokenUsuario
+    VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-validarToken
 
 functions:
   listarCompra:
