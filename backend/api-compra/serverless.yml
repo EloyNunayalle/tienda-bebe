@@ -1,0 +1,65 @@
+org: ${env:ORG_NAME}
+service: api-compra-bebe
+
+provider:
+  name: aws
+  region: us-east-1
+  runtime: python3.13
+  memorySize: 1024
+  timeout: 30
+  iam:
+    role: ${env:IAM_ROLE_ARN}
+  environment:
+    TABLE_COMPRAS: ${sls:stage}-${self:service}-t_compras
+    VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-ValidarTokenUsuario
+
+functions:
+  listarCompra:
+    handler: ListarCompra.handler
+    events:
+      - http:
+          path: /compra/listar
+          method: post
+          cors: true
+
+  registrarCompra:
+    handler: RegistrarCompra.handler
+    events:
+      - http:
+          path: /compra/registrar
+          method: post
+          cors: true
+
+resources:
+  Resources:
+    TablaCompras:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: ${self:provider.environment.TABLE_COMPRAS}
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          - AttributeName: tenant_id
+            AttributeType: S  
+          - AttributeName: compra_id
+            AttributeType: S
+          - AttributeName: user_id 
+            AttributeType: S  
+        KeySchema:
+          - AttributeName: tenant_id
+            KeyType: HASH  
+          - AttributeName: compra_id
+            KeyType: RANGE  
+        StreamSpecification:
+          StreamViewType: NEW_IMAGE
+        GlobalSecondaryIndexes:
+          - IndexName: idx_usuario  
+            KeySchema:
+              - AttributeName: tenant_id
+                KeyType: HASH  
+              - AttributeName: user_id
+                KeyType: RANGE  
+            Projection:
+              ProjectionType: ALL  
+            ProvisionedThroughput:
+              ReadCapacityUnits: 5
+              WriteCapacityUnits: 5
