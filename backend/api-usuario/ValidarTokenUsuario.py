@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import os
+import traceback
 
 def lambda_handler(event, context):
     cors_headers = {
