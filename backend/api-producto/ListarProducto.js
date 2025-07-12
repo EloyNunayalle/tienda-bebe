@@ -1,5 +1,4 @@
 const AWS = require('aws-sdk');
-const lambda = new AWS.Lambda();
 const dynamodb = new AWS.DynamoDB.DocumentClient();
 const TABLE_NAME = process.env.TABLE_PRODUCTOS;
 
@@ -11,42 +10,6 @@ exports.handler = async (event) => {
   };
 
   try {
-    // Obtener el token desde el header
-    const rawAuth = event.headers.Authorization || event.headers.authorization || '';
-    console.log('🔑 raw Authorization header:', rawAuth);
-
-    let token = rawAuth; // Usamos el token directamente sin el prefijo 'Bearer'
-
-    // Si no hay token, rechazamos
-    if (!token) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ error: 'Token no proporcionado' })
-      };
-    }
-
-    // Validar el token (invocar la función Lambda que valida el token)
-    const tokenResult = await lambda.invoke({
-      FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,  // Nombre de la función Lambda para validar el token
-      InvocationType: 'RequestResponse',
-      Payload: JSON.stringify({ token })
-    }).promise();
-
-    const validation = JSON.parse(tokenResult.Payload);
-    console.log("Token validation response:", validation);
-
-    // Verificar si la validación del token devolvió un error
-    if (validation.statusCode !== 200) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ error: 'Token inválido' })
-      };
-    }
-
-    const { tenant_id: tokenTenantId } = JSON.parse(validation.body);  // Obtener tenant_id del token
-
     // Parsear el body JSON
     let body;
     try {
@@ -62,22 +25,13 @@ exports.handler = async (event) => {
 
     const { tenant_id: requestTenantId, limit = 5, start_key } = body;
 
-    // Verificar que el tenant_id proporcionado coincida con el del token
-    if (requestTenantId !== tokenTenantId) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ error: 'El tenant_id del token no coincide con el proporcionado en la solicitud' })
-      };
-    }
-
     // Parámetros de la consulta de DynamoDB
     const params = {
       TableName: TABLE_NAME,
       Limit: limit,
       FilterExpression: "tenant_id = :tenant_id", // Filtro para asegurar que solo se devuelvan productos del tenant correspondiente
       ExpressionAttributeValues: {
-        ":tenant_id": tokenTenantId
+        ":tenant_id": requestTenantId
       }
     };
 
