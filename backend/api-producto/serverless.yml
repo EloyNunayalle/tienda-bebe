@@ -15,12 +15,14 @@ provider:
 
 package:
   patterns:
-    - '!node_modules/**'
-    - 'node_modules/swagger-jsdoc/**'
+    - '!node_modules/**'  
     - 'node_modules/swagger-ui-express/**'
+    - 'node_modules/swagger-jsdoc/**'
+    - 'node_modules/doctrine/**' 
+    - 'node_modules/argparse/**'   
+    - 'node_modules/js-yaml/**'    
     - 'swagger.js'
     - 'swagger.json'
-
 functions:
   listarProducto:
     handler: ListarProducto.handler
