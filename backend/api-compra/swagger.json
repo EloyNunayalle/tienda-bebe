@@ -1,0 +1,212 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API de Compras - Productos para Bebés",
+    "version": "1.0.0",
+    "description": "API para gestión de compras multi-tenant"
+  },
+  "servers": [
+    {
+      "url": "/dev",
+      "description": "Entorno de desarrollo"
+    }
+  ],
+  "paths": {
+    "/compra/listar": {
+      "post": {
+        "tags": ["Compras"],
+        "summary": "Listar compras de usuario",
+        "description": "Obtiene todas las compras realizadas por un usuario específico",
+        "security": [{"bearerAuth": []}],
+        "responses": {
+          "200": {
+            "description": "Lista de compras obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListarComprasResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Token no proporcionado"
+          },
+          "403": {
+            "description": "Token inválido"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/compra/registrar": {
+      "post": {
+        "tags": ["Compras"],
+        "summary": "Registrar nueva compra",
+        "description": "Registra una nueva compra de productos",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegistrarCompraRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Compra registrada exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegistrarCompraResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Datos de compra inválidos"
+          },
+          "401": {
+            "description": "Token no proporcionado"
+          },
+          "403": {
+            "description": "Token inválido"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ProductoCompra": {
+        "type": "object",
+        "properties": {
+          "producto_id": {
+            "type": "string",
+            "description": "ID del producto"
+          },
+          "nombre": {
+            "type": "string",
+            "description": "Nombre del producto"
+          },
+          "precio": {
+            "type": "number",
+            "format": "float",
+            "description": "Precio unitario del producto"
+          },
+          "cantidad": {
+            "type": "integer",
+            "description": "Cantidad comprada"
+          }
+        }
+      },
+      "RegistrarCompraRequest": {
+        "type": "object",
+        "required": ["productos"],
+        "properties": {
+          "productos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProductoCompra"
+            },
+            "description": "Lista de productos comprados"
+          }
+        }
+      },
+      "RegistrarCompraResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Compra registrada"
+          },
+          "compra": {
+            "type": "object",
+            "properties": {
+              "tenant_id": {
+                "type": "string",
+                "description": "ID del tenant"
+              },
+              "compra_id": {
+                "type": "string",
+                "description": "ID único de la compra"
+              },
+              "user_id": {
+                "type": "string",
+                "description": "ID del usuario"
+              },
+              "productos": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/components/schemas/ProductoCompra"
+                }
+              },
+              "total": {
+                "type": "number",
+                "format": "float",
+                "description": "Total de la compra"
+              },
+              "fecha": {
+                "type": "string",
+                "format": "date-time",
+                "description": "Fecha de la compra"
+              }
+            }
+          }
+        }
+      },
+      "ListarComprasResponse": {
+        "type": "object",
+        "properties": {
+          "compras": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "compra_id": {
+                  "type": "string",
+                  "description": "ID único de la compra"
+                },
+                "productos": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ProductoCompra"
+                  }
+                },
+                "total": {
+                  "type": "number",
+                  "format": "float",
+                  "description": "Total de la compra"
+                },
+                "fecha": {
+                  "type": "string",
+                  "format": "date-time",
+                  "description": "Fecha de la compra"
+                }
+              }
+            }
+          },
+          "cantidad": {
+            "type": "integer",
+            "description": "Número total de compras"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
