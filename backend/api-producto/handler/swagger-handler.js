@@ -1,48 +1,59 @@
-const path = require('path');
 const fs = require('fs');
-const mime = require('mime-types');
+const path = require('path');
 
-exports.handler = async (event) => {
-    const basePath = process.env.LAMBDA_TASK_ROOT ? path.join(process.env.LAMBDA_TASK_ROOT, 'swagger-ui') : path.join(__dirname, 'swagger-ui');
+exports.lambda_handler = async (event) => {
+  const headers = {
+    'Access-Control-Allow-Origin': '*',
+    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Allow-Methods': 'GET, OPTIONS'
+  };
 
-    const proxy = event.pathParameters ? event.pathParameters.proxy : '';
-    const filePath = proxy ? path.join(basePath, proxy) : path.join(basePath, 'index.html');
+  try {
+    // Ruta base donde están los archivos estáticos
+    const basePath = path.join(__dirname, '../swagger-ui');
+    
+    // Obtener el proxy path
+    const proxy = event.pathParameters?.proxy || '';
+    
+    // Determinar el archivo a servir
+    const filePath = proxy 
+      ? path.join(basePath, proxy)
+      : path.join(basePath, 'index.html');
 
-    console.log(`Attempting to serve file: ${filePath}`);
+    console.log(`Serving file: ${filePath}`);
+    
+    // Leer el archivo
+    const fileContent = fs.readFileSync(filePath);
+    
+    // Determinar el tipo MIME
+    const ext = path.extname(filePath);
+    const contentType = mimeTypes[ext] || 'application/octet-stream';
 
-    try {
-        const content = fs.readFileSync(filePath);
-
-        const mimeType = mime.lookup(filePath) || 'application/octet-stream';
-
-        return {
-            statusCode: 200,
-            headers: {
-                'Content-Type': mimeType,
-                'Access-Control-Allow-Origin': '*' 
-            },
-            body: content.toString('base64'),
-            isBase64Encoded: true
-        };
-    } catch (error) {
-        if (error.code === 'ENOENT') {
-            console.error(`File not found: ${filePath}`);
-            return {
-                statusCode: 404,
-                headers: {
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ error: 'File not found' })
-            };
-        } else {
-            console.error(`Error serving file ${filePath}:`, error);
-            return {
-                statusCode: 500,
-                headers: {
-                    'Access-Control-Allow-Origin': '*'
-                },
-                body: JSON.stringify({ error: error.message })
-            };
-        }
+    return {
+      statusCode: 200,
+      headers: {
+        ...headers,
+        'Content-Type': contentType
+      },
+      body: fileContent.toString('base64'),
+      isBase64Encoded: true
+    };
+    
+  } catch (error) {
+    if (error.code === 'ENOENT') {
+      console.error('File not found:', error.path);
+      return {
+        statusCode: 404,
+        headers,
+        body: JSON.stringify({ error: 'File not found' })
+      };
     }
+    
+    console.error('Error:', error);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Internal server error' })
+    };
+  }
 };
