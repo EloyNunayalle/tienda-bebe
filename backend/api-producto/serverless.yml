@@ -22,14 +22,12 @@ provider:
 
 package:
   patterns:
-    - 'node_modules/**'  
-    - 'node_modules/swagger-ui-express/**'
-    - 'node_modules/swagger-jsdoc/**'
-    - 'node_modules/doctrine/**' 
-    - 'node_modules/argparse/**'   
-    - 'node_modules/js-yaml/**'    
-    - 'swagger.js'
-    - 'swagger.json'
+    - '!**'  # Excluir todo primero
+    - '!node_modules/**'
+    - 'handlers/**'
+    - 'swagger-ui/**' # Incluir todos los archivos estáticos
+    - '*.js'          # Incluir todos los archivos Python
+
 functions:
   listarProducto:
     handler: ListarProducto.handler
@@ -93,7 +91,7 @@ functions:
       API_INDEXADOR_URL: http://34.205.2.254:8000/indexar
 
   swaggerUI:
-    handler: swagger.handler
+    handler: handlers/swagger_handler.lambda_handler
     events:
       - http:
           path: /swagger
@@ -103,7 +101,6 @@ functions:
           path: /swagger/{proxy+}
           method: get
           cors: true
-
 
 resources:
   Resources:

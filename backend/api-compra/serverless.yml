@@ -14,6 +14,15 @@ provider:
     VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-validarToken
     BUCKET_COMPRAS: proyecto-bebe-bucket
 
+package:
+  patterns:
+    - '!**'  # Excluir todo primero
+    - '!node_modules/**'
+    - 'handlers/**'
+    - 'swagger-ui/**' # Incluir todos los archivos estáticos
+    - '*.py'          # Incluir todos los archivos Python
+
+
 functions:
   listarCompra:
     handler: ListarCompra.lambda_handler
@@ -44,7 +53,7 @@ functions:
       BUCKET_COMPRAS: ${self:provider.environment.BUCKET_COMPRAS}
 
   swaggerUI:
-    handler: swagger.handler
+    handler: handlers/swagger_handler.lambda_handler
     events:
       - http:
           path: /swagger
@@ -54,6 +63,7 @@ functions:
           path: /swagger/{proxy+}
           method: get
           cors: true
+
 
 
 resources:
