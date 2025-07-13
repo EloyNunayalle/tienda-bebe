@@ -15,8 +15,9 @@ provider:
     BUCKET_PRODUCTOS_NAME: ${sls:stage}-${self:service}-productos
     BUCKET_PRODUCTOS_URL: https://${self:provider.environment.BUCKET_PRODUCTOS_NAME}.s3.${self:provider.region}.amazonaws.com
     
-  binaryMediaTypes:
-    - multipart/form-data
+  apiGateway:
+    binaryMediaTypes:
+      - multipart/form-data
 
 
 package:
@@ -76,6 +77,7 @@ functions:
           path: /producto/subirimagen
           method: post
           cors: true
+          contentHandling: CONVERT_TO_BINARY
 
           
   actualizarProductos:
