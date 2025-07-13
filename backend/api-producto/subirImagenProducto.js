@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-const Busboy = require('busboy');  // Correcta importación de Busboy
+const Busboy = require('busboy');  // No se usa `new`, solo importamos la función
 
 const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
@@ -47,7 +47,8 @@ exports.handler = async (event) => {
   const { tenant_id: tokenTenantId, rol: userRol } = JSON.parse(validation.body);
 
   return new Promise((resolve) => {
-    const busboy = new Busboy({ headers: event.headers });
+    // CORRECCIÓN: Usar Busboy correctamente como función, sin `new`
+    const busboy = Busboy({ headers: event.headers });
 
     let tenant_id = '';
     let producto_id = '';
