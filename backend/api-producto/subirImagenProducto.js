@@ -13,7 +13,8 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  console.log("🔵 Event recibido:", JSON.stringify(event));
+  console.log("🔵 Event recibido:");
+  console.log(JSON.stringify(event, null, 2));
 
   if (event.httpMethod === 'OPTIONS') {
     console.log("🟡 Preflight OPTIONS recibido");
@@ -95,7 +96,7 @@ exports.handler = async (event) => {
     busboy.on('file', (fieldname, file, fileInfo) => {
       const { filename, mimeType } = fileInfo || {};
       mimetype = mimeType || '';
-      console.log(`📦 Archivo recibido: field=${fieldname}, filename=${filename}, mimetype=${mimeType}`);
+      console.log(`📦 Archivo recibido: field=${fieldname}, filename=${filename}, mimetype=${mimetype}`);
 
       const chunks = [];
 
@@ -108,6 +109,7 @@ exports.handler = async (event) => {
         uploadBuffer = Buffer.concat(chunks);
         fileUploadFinished = true;
         console.log(`✅ Archivo completado. Total bytes: ${uploadBuffer.length}`);
+        console.log(`📸 Primeros bytes: ${uploadBuffer.toString('hex', 0, 20)}...`);
       });
     });
 
@@ -150,7 +152,6 @@ exports.handler = async (event) => {
         });
       }
 
-      // Validar mimetype
       const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
       if (!allowedTypes.includes(mimetype)) {
         console.warn(`❌ Tipo de archivo no permitido: ${mimetype}`);
@@ -196,6 +197,7 @@ exports.handler = async (event) => {
     try {
       const buffer = Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8');
       console.log("🔵 Body decodificado correctamente. Bytes:", buffer.length);
+      console.log("🔵 Primera parte del body:", buffer.toString('hex', 0, 50), '...');
       busboy.end(buffer);
     } catch (e) {
       console.error("❌ Error al decodificar el body:", e);
