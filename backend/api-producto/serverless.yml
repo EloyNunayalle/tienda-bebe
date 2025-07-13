@@ -65,6 +65,14 @@ functions:
           path: /producto/eliminar
           method: delete
           cors: true
+  subirImagenProducto:
+    handler: subirImagenProducto.handler
+    events:
+      - http:
+          path: /producto/subirimagen
+          method: post
+          cors: true
+
           
   actualizarProductos:
     handler: mv-busqueda/lambda/lambda_actualizar_productos.lambda_handler
