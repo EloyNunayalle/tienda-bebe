@@ -91,7 +91,7 @@ functions:
       API_INDEXADOR_URL: http://34.205.2.254:8000/indexar
 
   swaggerUI:
-    handler: handlers/swagger_handler.lambda_handler
+    handler: handlers/swagger_handler.handler
     events:
       - http:
           path: /swagger

@@ -53,7 +53,7 @@ functions:
       BUCKET_COMPRAS: ${self:provider.environment.BUCKET_COMPRAS}
 
   swaggerUI:
-    handler: handlers/swagger_handler.lambda_handler
+    handler: handlers/swagger_handler.handler
     events:
       - http:
           path: /swagger

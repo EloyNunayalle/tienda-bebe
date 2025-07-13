@@ -51,7 +51,7 @@ functions:
     handler: ValidarTokenUsuario.lambda_handler
     
   swaggerUI:
-    handler: handlers/swagger_handler.lambda_handler
+    handler: handlers/swagger_handler.handler
     events:
       - http:
           path: /swagger
