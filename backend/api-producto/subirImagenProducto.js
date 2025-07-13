@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-const Busboy = require('busboy');  // No se usa `new`, solo importamos la función
+const Busboy = require('busboy');
 
 const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
@@ -47,8 +47,17 @@ exports.handler = async (event) => {
   const { tenant_id: tokenTenantId, rol: userRol } = JSON.parse(validation.body);
 
   return new Promise((resolve) => {
-    // CORRECCIÓN: Usar Busboy correctamente como función, sin `new`
-    const busboy = Busboy({ headers: event.headers });
+    // ✅ Obtener Content-Type correctamente, sin importar capitalización
+    const contentType = event.headers['content-type'] || event.headers['Content-Type'];
+    if (!contentType) {
+      return resolve({
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Missing Content-Type' })
+      });
+    }
+
+    const busboy = Busboy({ headers: { 'content-type': contentType } });
 
     let tenant_id = '';
     let producto_id = '';
@@ -65,7 +74,7 @@ exports.handler = async (event) => {
       const chunks = [];
       file.on('data', (data) => chunks.push(data));
       file.on('end', () => {
-        uploadBuffer = Buffer.concat(chunks);  // Concatenamos los datos de la imagen
+        uploadBuffer = Buffer.concat(chunks);
       });
     });
 
@@ -78,7 +87,6 @@ exports.handler = async (event) => {
         });
       }
 
-      // Validar que el tenant_id enviado coincida con el del token
       if (tenant_id !== tokenTenantId) {
         return resolve({
           statusCode: 403,
@@ -87,7 +95,6 @@ exports.handler = async (event) => {
         });
       }
 
-      // Validar rol admin
       if (userRol !== 'admin') {
         return resolve({
           statusCode: 403,
@@ -96,16 +103,15 @@ exports.handler = async (event) => {
         });
       }
 
-      const key = `${tenant_id}/${producto_id}/${name}.jpg`;  // Nombre del archivo en S3
+      const key = `${tenant_id}/${producto_id}/${name}.jpg`;
 
       try {
-        // Subir la imagen a S3
         await s3.putObject({
           Bucket: BUCKET_NAME,
           Key: key,
           Body: uploadBuffer,
           ContentType: 'image/jpeg',
-          ACL: 'public-read'  // Hacerla pública, si es necesario
+          ACL: 'public-read'
         }).promise();
 
         const region = process.env.AWS_REGION || 'us-east-1';
@@ -126,8 +132,7 @@ exports.handler = async (event) => {
       }
     });
 
-    // Analizar el cuerpo de la solicitud
     const buffer = Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8');
-    busboy.end(buffer);  // Iniciar el proceso de análisis del archivo
+    busboy.end(buffer);
   });
 };
