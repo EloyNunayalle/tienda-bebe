@@ -16,6 +16,8 @@ provider:
 package:
   patterns:
     - '!node_modules/**'  
+    - 'node_modules/aws-sdk/**'
+    - 'node_modules/uuid/**'
     - 'node_modules/swagger-ui-express/**'
     - 'node_modules/swagger-jsdoc/**'
     - 'node_modules/doctrine/**' 
