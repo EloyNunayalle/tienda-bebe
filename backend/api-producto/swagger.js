@@ -13,11 +13,9 @@ const options = {
   apis: ['./*.js'], // Archivos que contienen documentación Swagger
 };
 
-const specs = swaggerJsdoc(options);
-
 // Handler principal
 module.exports.handler = async (event, context) => {
-  const html = swaggerUi.generateHTML(specs);
+  const html = swaggerUi.generateHTML(require('./swagger.json'));
   
   return {
     statusCode: 200,
