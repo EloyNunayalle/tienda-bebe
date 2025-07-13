@@ -14,6 +14,10 @@ provider:
     VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-validarToken
     BUCKET_PRODUCTOS_NAME: ${sls:stage}-${self:service}-productos
     BUCKET_PRODUCTOS_URL: https://${self:provider.environment.BUCKET_PRODUCTOS_NAME}.s3.${self:provider.region}.amazonaws.com
+    
+  binaryMediaTypes:
+    - multipart/form-data
+
 
 package:
   patterns:
