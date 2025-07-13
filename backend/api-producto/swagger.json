@@ -1,0 +1,465 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "API de Productos para Bebés",
+    "version": "1.0.0",
+    "description": "API para gestión de productos multi-tenant"
+  },
+  "servers": [
+    {
+      "url": "/dev",
+      "description": "Entorno de desarrollo"
+    }
+  ],
+  "paths": {
+    "/producto/listar": {
+      "post": {
+        "tags": ["Productos"],
+        "summary": "Listar productos",
+        "description": "Obtiene una lista paginada de productos para un tenant específico",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ListarProductosRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Lista de productos obtenida exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ListarProductosResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/producto/crear": {
+      "post": {
+        "tags": ["Productos"],
+        "summary": "Crear producto",
+        "description": "Crea un nuevo producto (requiere autenticación de admin)",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CrearProductoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Producto creado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CrearProductoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida"
+          },
+          "403": {
+            "description": "No autorizado"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/producto/buscar": {
+      "post": {
+        "tags": ["Productos"],
+        "summary": "Buscar producto",
+        "description": "Busca un producto por su ID",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/BuscarProductoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Producto encontrado",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Producto"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Producto no encontrado"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/producto/modificar": {
+      "put": {
+        "tags": ["Productos"],
+        "summary": "Modificar producto",
+        "description": "Modifica un producto existente (requiere autenticación de admin)",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ModificarProductoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Producto modificado exitosamente",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ModificarProductoResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Solicitud inválida"
+          },
+          "403": {
+            "description": "No autorizado"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    },
+    "/producto/eliminar": {
+      "delete": {
+        "tags": ["Productos"],
+        "summary": "Eliminar producto",
+        "description": "Elimina un producto existente (requiere autenticación de admin)",
+        "security": [{"bearerAuth": []}],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/EliminarProductoRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Producto eliminado exitosamente"
+          },
+          "400": {
+            "description": "Solicitud inválida"
+          },
+          "403": {
+            "description": "No autorizado"
+          },
+          "404": {
+            "description": "Producto no encontrado"
+          },
+          "500": {
+            "description": "Error interno del servidor"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Producto": {
+        "type": "object",
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "description": "ID del tenant"
+          },
+          "producto_id": {
+            "type": "string",
+            "description": "ID único del producto"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del producto"
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción del producto"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Precio del producto"
+          },
+          "category_id": {
+            "type": "string",
+            "description": "ID de la categoría"
+          },
+          "age": {
+            "type": "string",
+            "description": "Rango de edad recomendado"
+          },
+          "gender": {
+            "type": "string",
+            "description": "Género objetivo del producto"
+          },
+          "type": {
+            "type": "string",
+            "description": "Tipo de producto"
+          },
+          "availability": {
+            "type": "boolean",
+            "description": "Disponibilidad del producto"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "URL de la imagen del producto"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Fecha de creación"
+          },
+          "user_id": {
+            "type": "string",
+            "description": "ID del usuario que creó el producto"
+          }
+        }
+      },
+      "ListarProductosRequest": {
+        "type": "object",
+        "required": ["tenant_id"],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "description": "ID del tenant"
+          },
+          "limit": {
+            "type": "integer",
+            "default": 5,
+            "description": "Límite de resultados por página"
+          },
+          "start_key": {
+            "type": "string",
+            "description": "Clave para paginación"
+          }
+        }
+      },
+      "ListarProductosResponse": {
+        "type": "object",
+        "properties": {
+          "productos": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Producto"
+            }
+          },
+          "lastEvaluatedKey": {
+            "type": "string",
+            "description": "Clave para la siguiente página de resultados"
+          }
+        }
+      },
+      "CrearProductoRequest": {
+        "type": "object",
+        "required": ["tenant_id", "name", "price"],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "description": "ID del tenant"
+          },
+          "producto_id": {
+            "type": "string",
+            "description": "ID del producto (opcional, se genera automáticamente si no se proporciona)"
+          },
+          "name": {
+            "type": "string",
+            "description": "Nombre del producto"
+          },
+          "description": {
+            "type": "string",
+            "description": "Descripción del producto"
+          },
+          "price": {
+            "type": "number",
+            "format": "float",
+            "description": "Precio del producto"
+          },
+          "category_id": {
+            "type": "string",
+            "description": "ID de la categoría"
+          },
+          "age": {
+            "type": "string",
+            "description": "Rango de edad recomendado"
+          },
+          "gender": {
+            "type": "string",
+            "description": "Género objetivo del producto"
+          },
+          "type": {
+            "type": "string",
+            "description": "Tipo de producto"
+          },
+          "availability": {
+            "type": "boolean",
+            "description": "Disponibilidad del producto"
+          },
+          "imageUrl": {
+            "type": "string",
+            "description": "URL de la imagen del producto"
+          }
+        }
+      },
+      "CrearProductoResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Producto creado exitosamente"
+          },
+          "producto_id": {
+            "type": "string",
+            "description": "ID del producto creado"
+          }
+        }
+      },
+      "BuscarProductoRequest": {
+        "type": "object",
+        "required": ["tenant_id", "producto_id"],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "description": "ID del tenant"
+          },
+          "producto_id": {
+            "type": "string",
+            "description": "ID del producto a buscar"
+          }
+        }
+      },
+      "ModificarProductoRequest": {
+        "type": "object",
+        "required": ["tenant_id", "producto_id", "producto_datos"],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "description": "ID del tenant"
+          },
+          "producto_id": {
+            "type": "string",
+            "description": "ID del producto a modificar"
+          },
+          "producto_datos": {
+            "type": "object",
+            "description": "Campos a actualizar",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "Nuevo nombre del producto"
+              },
+              "description": {
+                "type": "string",
+                "description": "Nueva descripción del producto"
+              },
+              "price": {
+                "type": "number",
+                "format": "float",
+                "description": "Nuevo precio del producto"
+              },
+              "category_id": {
+                "type": "string",
+                "description": "Nuevo ID de categoría"
+              },
+              "age": {
+                "type": "string",
+                "description": "Nuevo rango de edad"
+              },
+              "gender": {
+                "type": "string",
+                "description": "Nuevo género objetivo"
+              },
+              "type": {
+                "type": "string",
+                "description": "Nuevo tipo de producto"
+              },
+              "availability": {
+                "type": "boolean",
+                "description": "Nueva disponibilidad"
+              },
+              "imageUrl": {
+                "type": "string",
+                "description": "Nueva URL de imagen"
+              }
+            }
+          }
+        }
+      },
+      "ModificarProductoResponse": {
+        "type": "object",
+        "properties": {
+          "message": {
+            "type": "string",
+            "example": "Producto modificado exitosamente"
+          },
+          "datosActualizados": {
+            "type": "object",
+            "description": "Campos actualizados"
+          }
+        }
+      },
+      "EliminarProductoRequest": {
+        "type": "object",
+        "required": ["tenant_id", "producto_id"],
+        "properties": {
+          "tenant_id": {
+            "type": "string",
+            "description": "ID del tenant"
+          },
+          "producto_id": {
+            "type": "string",
+            "description": "ID del producto a eliminar"
+          }
+        }
+      }
+    },
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  }
+}
