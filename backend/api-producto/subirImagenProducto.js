@@ -82,6 +82,7 @@ exports.handler = async (event) => {
     let producto_id = '';
     let name = '';
     let uploadBuffer = null;
+    let mimetype = '';
     let fileUploadFinished = false;
 
     busboy.on('field', (fieldname, val) => {
@@ -91,8 +92,11 @@ exports.handler = async (event) => {
       if (fieldname === 'name') name = val;
     });
 
-    busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
-      console.log(`📦 Archivo recibido: field=${fieldname}, filename=${filename}, mimetype=${mimetype}`);
+    busboy.on('file', (fieldname, file, fileInfo) => {
+      const { filename, mimeType } = fileInfo || {};
+      mimetype = mimeType || '';
+      console.log(`📦 Archivo recibido: field=${fieldname}, filename=${filename}, mimetype=${mimeType}`);
+
       const chunks = [];
 
       file.on('data', (data) => {
@@ -110,8 +114,8 @@ exports.handler = async (event) => {
     busboy.on('finish', async () => {
       console.log("🟢 Busboy terminó. Procesando...");
 
-      if (!fileUploadFinished) {
-        console.error("❌ El archivo no terminó de subirse correctamente.");
+      if (!fileUploadFinished || !uploadBuffer) {
+        console.error("❌ El archivo no se procesó correctamente.");
         return resolve({
           statusCode: 400,
           headers,
@@ -119,12 +123,12 @@ exports.handler = async (event) => {
         });
       }
 
-      if (!tenant_id || !producto_id || !name || !uploadBuffer) {
-        console.warn("❌ Faltan campos requeridos o archivo inválido");
+      if (!tenant_id || !producto_id || !name) {
+        console.warn("❌ Faltan campos requeridos");
         return resolve({
           statusCode: 400,
           headers,
-          body: JSON.stringify({ error: 'Faltan campos requeridos o archivo inválido' })
+          body: JSON.stringify({ error: 'Faltan campos requeridos' })
         });
       }
 
@@ -146,15 +150,27 @@ exports.handler = async (event) => {
         });
       }
 
-      const key = `${tenant_id}/${producto_id}/${name}.jpg`;
-      console.log(`📝 Guardando imagen en S3: ${key}`);
+      // Validar mimetype
+      const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png'];
+      if (!allowedTypes.includes(mimetype)) {
+        console.warn(`❌ Tipo de archivo no permitido: ${mimetype}`);
+        return resolve({
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Formato de imagen no permitido. Usa JPG o PNG.' })
+        });
+      }
+
+      const ext = mimetype === 'image/png' ? 'png' : 'jpg';
+      const key = `${tenant_id}/${producto_id}/${name}.${ext}`;
+      console.log(`📝 Guardando imagen en S3 con key: ${key}`);
 
       try {
         await s3.putObject({
           Bucket: BUCKET_NAME,
           Key: key,
           Body: uploadBuffer,
-          ContentType: 'image/jpeg',
+          ContentType: mimetype,
           ACL: 'public-read'
         }).promise();
 
