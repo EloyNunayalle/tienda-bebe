@@ -15,8 +15,7 @@ provider:
 
 package:
   patterns:
-    - '!node_modules/.prisma/**'
-    - '!node_modules/@prisma/**'
+    - '!node_modules/**'
     - 'node_modules/swagger-jsdoc/**'
     - 'node_modules/swagger-ui-express/**'
     - 'swagger.js'
