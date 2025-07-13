@@ -1,0 +1,16 @@
+version: '3.8'
+
+services:
+
+  indexador-api:
+    container_name: indexador-api
+    build: ./api-rest
+    ports:
+      - "8000:8000"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock  
+    restart: always
+    environment:
+      - PYTHONUNBUFFERED=1
+
+volumes:
