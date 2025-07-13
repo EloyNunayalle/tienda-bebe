@@ -31,6 +31,13 @@ functions:
           path: /usuario/login
           method: post
           cors: true
+  ObtenerUsuario:
+    handler: obtener_usuario.lambda_handler
+    events:
+      - http:
+          path: /usuario/obtener
+          method: post
+          cors: true
 
   validarToken:
     handler: ValidarTokenUsuario.lambda_handler
