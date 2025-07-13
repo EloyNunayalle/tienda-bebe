@@ -91,14 +91,14 @@ functions:
       API_INDEXADOR_URL: http://34.205.2.254:8000/indexar
 
   swaggerUI:
-    handler: handlers/swagger_handler.handler
+    handler: handlers/swagger-handler.lambda_handler
     events:
       - http:
-          path: /swagger
+          path: /docs/swagger
           method: get
           cors: true
       - http:
-          path: /swagger/{proxy+}
+          path: /docs/swagger/{proxy+}
           method: get
           cors: true
 

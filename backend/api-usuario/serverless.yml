@@ -51,14 +51,14 @@ functions:
     handler: ValidarTokenUsuario.lambda_handler
     
   swaggerUI:
-    handler: handlers/swagger_handler.handler
+    handler: handlers/swagger-handler.lambda_handler
     events:
       - http:
-          path: /swagger
+          path: /docs/swagger
           method: get
           cors: true
       - http:
-          path: /swagger/{proxy+}
+          path: /docs/swagger/{proxy+}
           method: get
           cors: true
 
