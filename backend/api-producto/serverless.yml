@@ -13,6 +13,15 @@ provider:
     TABLE_PRODUCTOS: ${sls:stage}-${self:service}-t_productos
     VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-validarToken
 
+package:
+  patterns:
+    - '!node_modules/.prisma/**'
+    - '!node_modules/@prisma/**'
+    - 'node_modules/swagger-jsdoc/**'
+    - 'node_modules/swagger-ui-express/**'
+    - 'swagger.js'
+    - 'swagger.json'
+
 functions:
   listarProducto:
     handler: ListarProducto.handler
