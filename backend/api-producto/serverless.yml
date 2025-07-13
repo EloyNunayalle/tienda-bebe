@@ -12,6 +12,8 @@ provider:
   environment:
     TABLE_PRODUCTOS: ${sls:stage}-${self:service}-t_productos
     VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-validarToken
+    BUCKET_PRODUCTOS_NAME: ${sls:stage}-${self:service}-productos
+    BUCKET_PRODUCTOS_URL: https://${self:provider.environment.BUCKET_PRODUCTOS_NAME}.s3.${self:provider.region}.amazonaws.com
 
 package:
   patterns:
@@ -108,3 +110,24 @@ resources:
             KeyType: RANGE
         StreamSpecification:
           StreamViewType: NEW_IMAGE
+    BucketProductos:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:provider.environment.BUCKET_PRODUCTOS_NAME}
+        AccessControl: PublicRead
+        PublicAccessBlockConfiguration:
+          BlockPublicAcls: false
+          IgnorePublicAcls: false
+          BlockPublicPolicy: false
+          RestrictPublicBuckets: false
+        CorsConfiguration:
+          CorsRules:
+            - AllowedOrigins:
+                - "*"
+              AllowedMethods:
+                - GET
+              AllowedHeaders:
+                - "*"
+              MaxAge: 3000
+      
+      
