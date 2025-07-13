@@ -16,6 +16,14 @@ def lambda_handler(event, context):
         'Access-Control-Allow-Methods': 'OPTIONS,POST'
     }
 
+    if event['httpMethod'] == 'OPTIONS':
+    return {
+        'statusCode': 200,
+        'headers': cors_headers,
+        'body': json.dumps({'message': 'Preflight check passed'})
+    }
+
+
     try:
         body = json.loads(event['body'])
 
