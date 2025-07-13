@@ -12,10 +12,11 @@ provider:
   environment:
     TABLE_COMPRAS: ${sls:stage}-${self:service}-t_compras
     VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-validarToken
+    BUCKET_COMPRAS: proyecto-bebe-bucket
 
 functions:
   listarCompra:
-    handler: ListarCompra.lambda_handler        # archivo .función
+    handler: ListarCompra.lambda_handler
     events:
       - http:
           path: /compra/listar
@@ -23,12 +24,24 @@ functions:
           cors: true
 
   registrarCompra:
-    handler: RegistrarCompra.lambda_handler     # archivo .función
+    handler: RegistrarCompra.lambda_handler
     events:
       - http:
           path: /compra/registrar
           method: post
           cors: true
+
+  actualizarCompras:
+    handler: lambda/lambda_actualizar_compras.lambda_handler
+    events:
+      - stream:
+          type: dynamodb
+          arn:
+            Fn::GetAtt:
+              - TablaCompras
+              - StreamArn
+    environment:
+      BUCKET_COMPRAS: ${self:provider.environment.BUCKET_COMPRAS}
 
   swaggerUI:
     handler: swagger.handler
@@ -41,7 +54,6 @@ functions:
           path: /swagger/{proxy+}
           method: get
           cors: true
-
 
 resources:
   Resources:
