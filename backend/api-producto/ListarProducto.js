@@ -9,6 +9,7 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
+  
   try {
     // Parsear el body JSON
     let body;
