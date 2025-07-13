@@ -1,5 +1,5 @@
 const AWS = require('aws-sdk');
-const Busboy = require('busboy');
+const Busboy = require('busboy');  // Correcta importación de Busboy
 
 const s3 = new AWS.S3();
 const lambda = new AWS.Lambda();
@@ -64,7 +64,7 @@ exports.handler = async (event) => {
       const chunks = [];
       file.on('data', (data) => chunks.push(data));
       file.on('end', () => {
-        uploadBuffer = Buffer.concat(chunks);
+        uploadBuffer = Buffer.concat(chunks);  // Concatenamos los datos de la imagen
       });
     });
 
@@ -95,15 +95,16 @@ exports.handler = async (event) => {
         });
       }
 
-      const key = `${tenant_id}/${producto_id}/${name}.jpg`;
+      const key = `${tenant_id}/${producto_id}/${name}.jpg`;  // Nombre del archivo en S3
 
       try {
+        // Subir la imagen a S3
         await s3.putObject({
           Bucket: BUCKET_NAME,
           Key: key,
           Body: uploadBuffer,
           ContentType: 'image/jpeg',
-          ACL: 'public-read'
+          ACL: 'public-read'  // Hacerla pública, si es necesario
         }).promise();
 
         const region = process.env.AWS_REGION || 'us-east-1';
@@ -124,7 +125,8 @@ exports.handler = async (event) => {
       }
     });
 
+    // Analizar el cuerpo de la solicitud
     const buffer = Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8');
-    busboy.end(buffer);
+    busboy.end(buffer);  // Iniciar el proceso de análisis del archivo
   });
 };
