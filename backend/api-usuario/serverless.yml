@@ -34,6 +34,19 @@ functions:
   validarToken:
     handler: ValidarTokenUsuario.lambda_handler
     
+  swaggerUI:
+    handler: swagger.handler
+    events:
+      - http:
+          path: /swagger
+          method: get
+          cors: true
+      - http:
+          path: /swagger/{proxy+}
+          method: get
+          cors: true
+
+
 resources:
   Resources:
 

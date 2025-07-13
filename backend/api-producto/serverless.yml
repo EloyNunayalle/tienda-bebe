@@ -66,6 +66,19 @@ functions:
     environment:
       API_INDEXADOR_URL: http://34.205.2.254:8000/indexar
 
+  swaggerUI:
+    handler: swagger.handler
+    events:
+      - http:
+          path: /swagger
+          method: get
+          cors: true
+      - http:
+          path: /swagger/{proxy+}
+          method: get
+          cors: true
+
+
 resources:
   Resources:
     TablaProductos:

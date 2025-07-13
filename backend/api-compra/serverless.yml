@@ -43,6 +43,19 @@ functions:
     environment:
       BUCKET_COMPRAS: ${self:provider.environment.BUCKET_COMPRAS}
 
+  swaggerUI:
+    handler: swagger.handler
+    events:
+      - http:
+          path: /swagger
+          method: get
+          cors: true
+      - http:
+          path: /swagger/{proxy+}
+          method: get
+          cors: true
+
+
 resources:
   Resources:
     TablaCompras:
