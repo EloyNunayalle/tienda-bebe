@@ -13,16 +13,18 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  // Soporte preflight
+  console.log("🔵 Event recibido:", JSON.stringify(event));
+
   if (event.httpMethod === 'OPTIONS') {
+    console.log("🟡 Preflight OPTIONS recibido");
     return { statusCode: 200, headers };
   }
 
-  // Token
   const rawAuth = event.headers.Authorization || event.headers.authorization || '';
   const token = rawAuth;
 
   if (!token) {
+    console.warn("❌ Token no proporcionado");
     return {
       statusCode: 401,
       headers,
@@ -30,15 +32,29 @@ exports.handler = async (event) => {
     };
   }
 
-  // Validar token vía otra Lambda
-  const tokenResult = await lambda.invoke({
-    FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,
-    InvocationType: 'RequestResponse',
-    Payload: JSON.stringify({ token })
-  }).promise();
+  console.log("🔵 Token recibido:", token);
 
-  const validation = JSON.parse(tokenResult.Payload);
+  // Validar token
+  let validation;
+  try {
+    const tokenResult = await lambda.invoke({
+      FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,
+      InvocationType: 'RequestResponse',
+      Payload: JSON.stringify({ token })
+    }).promise();
+
+    validation = JSON.parse(tokenResult.Payload);
+  } catch (e) {
+    console.error("❌ Error al invocar función de validación:", e);
+    return {
+      statusCode: 500,
+      headers,
+      body: JSON.stringify({ error: 'Error al validar token' })
+    };
+  }
+
   if (validation.statusCode !== 200) {
+    console.warn("❌ Token inválido:", validation.body);
     return {
       statusCode: validation.statusCode,
       headers,
@@ -47,11 +63,12 @@ exports.handler = async (event) => {
   }
 
   const { tenant_id: tokenTenantId, rol: userRol } = JSON.parse(validation.body);
+  console.log("✅ Token validado. Tenant:", tokenTenantId, "Rol:", userRol);
 
   return new Promise((resolve) => {
-    // ✅ Asegura que content-type esté disponible
     const contentType = event.headers['content-type'] || event.headers['Content-Type'];
     if (!contentType) {
+      console.error("❌ Content-Type faltante");
       return resolve({
         statusCode: 400,
         headers,
@@ -65,31 +82,54 @@ exports.handler = async (event) => {
     let producto_id = '';
     let name = '';
     let uploadBuffer = null;
+    let fileUploadFinished = false;
 
     busboy.on('field', (fieldname, val) => {
+      console.log(`🟡 Campo recibido: ${fieldname} = ${val}`);
       if (fieldname === 'tenant_id') tenant_id = val;
       if (fieldname === 'producto_id') producto_id = val;
       if (fieldname === 'name') name = val;
     });
 
     busboy.on('file', (fieldname, file, filename, encoding, mimetype) => {
+      console.log(`📦 Archivo recibido: field=${fieldname}, filename=${filename}, mimetype=${mimetype}`);
       const chunks = [];
-      file.on('data', (data) => chunks.push(data));
+
+      file.on('data', (data) => {
+        console.log(`🔹 Chunk recibido: ${data.length} bytes`);
+        chunks.push(data);
+      });
+
       file.on('end', () => {
         uploadBuffer = Buffer.concat(chunks);
+        fileUploadFinished = true;
+        console.log(`✅ Archivo completado. Total bytes: ${uploadBuffer.length}`);
       });
     });
 
     busboy.on('finish', async () => {
-      if (!tenant_id || !producto_id || !name || !uploadBuffer) {
+      console.log("🟢 Busboy terminó. Procesando...");
+
+      if (!fileUploadFinished) {
+        console.error("❌ El archivo no terminó de subirse correctamente.");
         return resolve({
           statusCode: 400,
           headers,
-          body: JSON.stringify({ error: 'Faltan campos requeridos o archivo' })
+          body: JSON.stringify({ error: 'Archivo incompleto o no proporcionado' })
+        });
+      }
+
+      if (!tenant_id || !producto_id || !name || !uploadBuffer) {
+        console.warn("❌ Faltan campos requeridos o archivo inválido");
+        return resolve({
+          statusCode: 400,
+          headers,
+          body: JSON.stringify({ error: 'Faltan campos requeridos o archivo inválido' })
         });
       }
 
       if (tenant_id !== tokenTenantId) {
+        console.warn("❌ Tenant ID no coincide");
         return resolve({
           statusCode: 403,
           headers,
@@ -98,6 +138,7 @@ exports.handler = async (event) => {
       }
 
       if (userRol !== 'admin') {
+        console.warn("❌ Usuario no autorizado para subir imágenes");
         return resolve({
           statusCode: 403,
           headers,
@@ -106,6 +147,7 @@ exports.handler = async (event) => {
       }
 
       const key = `${tenant_id}/${producto_id}/${name}.jpg`;
+      console.log(`📝 Guardando imagen en S3: ${key}`);
 
       try {
         await s3.putObject({
@@ -118,6 +160,7 @@ exports.handler = async (event) => {
 
         const region = process.env.AWS_REGION || 'us-east-1';
         const imageUrl = `https://${BUCKET_NAME}.s3.${region}.amazonaws.com/${key}`;
+        console.log("✅ Imagen subida con éxito:", imageUrl);
 
         return resolve({
           statusCode: 200,
@@ -125,7 +168,7 @@ exports.handler = async (event) => {
           body: JSON.stringify({ message: 'Imagen subida correctamente', imageUrl })
         });
       } catch (err) {
-        console.error('❌ Error al subir imagen:', err);
+        console.error("❌ Error al subir imagen a S3:", err);
         return resolve({
           statusCode: 500,
           headers,
@@ -134,8 +177,17 @@ exports.handler = async (event) => {
       }
     });
 
-    // ⚠️ Decodifica correctamente el body (es base64 cuando se envía archivo)
-    const buffer = Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8');
-    busboy.end(buffer);
+    try {
+      const buffer = Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8');
+      console.log("🔵 Body decodificado correctamente. Bytes:", buffer.length);
+      busboy.end(buffer);
+    } catch (e) {
+      console.error("❌ Error al decodificar el body:", e);
+      return resolve({
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ error: 'Error al procesar body base64' })
+      });
+    }
   });
 };
