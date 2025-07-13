@@ -54,18 +54,6 @@ functions:
           method: delete
           cors: true
           
-  swaggerUI:
-    handler: swagger.handler
-    events:
-      - http:
-          path: /swagger
-          method: get
-          cors: true
-      - http:
-          path: /swagger/{proxy+}
-          method: get
-          cors: true
-
   actualizarProductos:
     handler: mv-busqueda/lambda/lambda_actualizar_productos.lambda_handler
     events:
