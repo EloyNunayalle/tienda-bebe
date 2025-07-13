@@ -10,7 +10,7 @@ exports.lambda_handler = async (event) => {
 
   try {
     // Ruta base donde están los archivos estáticos
-    const basePath = path.join(__dirname, '../swagger-ui');
+    const basePath = path.join(__dirname, '../docs/swagger-ui');
     
     // Obtener el proxy path
     const proxy = event.pathParameters?.proxy || '';

@@ -19,7 +19,7 @@ package:
     - '!**'  # Excluir todo primero
     - '!node_modules/**'
     - 'handlers/**'
-    - 'swagger-ui/**' # Incluir todos los archivos estáticos
+    - 'docs/**' # Incluir todos los archivos estáticos
     - '*.py'          # Incluir todos los archivos Python
 
 

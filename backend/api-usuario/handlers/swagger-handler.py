@@ -3,8 +3,15 @@ import base64
 import mimetypes
 
 def lambda_handler(event, context):
+    headers = {
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': '*',
+        'Access-Control-Allow-Methods': 'GET, OPTIONS'
+    }
+
+def lambda_handler(event, context):
     # Determinar la ruta base donde están los archivos estáticos
-    base_path = os.path.join(os.path.dirname(__file__), '../swagger-ui')
+    base_path = os.path.join(os.path.dirname(__file__), '../docs/swagger-ui')
     
     # Obtener el proxy path (la parte de la ruta después de /swagger/)
     proxy = event.get('pathParameters', {}).get('proxy', '')

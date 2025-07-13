@@ -14,7 +14,6 @@ def lambda_handler(event, context):
         'Access-Control-Allow-Methods': 'GET, OPTIONS'
     }
     
-    # 1. Manejo de CORS pre-flight
     if event['httpMethod'] == 'OPTIONS':
         return {
             'statusCode': 200,
@@ -22,13 +21,10 @@ def lambda_handler(event, context):
             'body': json.dumps({'message': 'Preflight OK'})
         }
     
-    # 2. Determinar la ruta base de los archivos estáticos de Swagger UI
-    base_path = os.path.join(os.environ.get('LAMBDA_TASK_ROOT', '.'), 'swagger-ui')
+    base_path = os.path.join(os.path.dirname(__file__), '../docs/swagger-ui')
     
-    # 3. Obtener la ruta del archivo solicitada (proxy)
     proxy = event.get('pathParameters', {}).get('proxy', '')
     
-    # Limpiamos el proxy para prevenir 'path traversal'
     if '..' in proxy:
         return {
             'statusCode': 403,
@@ -41,19 +37,15 @@ def lambda_handler(event, context):
     logger.info(f"Attempting to serve file: {file_path}")
     
     try:
-        # 4. Leer el archivo en modo binario
         with open(file_path, 'rb') as file:
             content = file.read()
         
-        # 5. Determinar el tipo MIME
         mime_type, _ = mimetypes.guess_type(file_path)
         if not mime_type:
             mime_type = 'application/octet-stream'
         
-        # 6. Codificar el contenido en Base64 para la respuesta de API Gateway
         encoded_content = base64.b64encode(content).decode('utf-8')
         
-        # 7. Retornar la respuesta HTTP
         return {
             'statusCode': 200,
             'headers': {
