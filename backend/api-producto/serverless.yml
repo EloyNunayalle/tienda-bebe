@@ -114,7 +114,10 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:provider.environment.BUCKET_PRODUCTOS_NAME}
-        AccessControl: PublicRead
+        AccessControl: PublicRead  # Habilita ACL
+        OwnershipControls:
+          Rules:
+            - ObjectOwnership: ObjectWriter  # Requiere esto para usar ACLs
         PublicAccessBlockConfiguration:
           BlockPublicAcls: false
           IgnorePublicAcls: false
@@ -129,5 +132,18 @@ resources:
               AllowedHeaders:
                 - "*"
               MaxAge: 3000
+
+    BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref BucketProductos
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Sid: AllowPublicRead
+              Effect: Allow
+              Principal: "*"
+              Action: "s3:GetObject"
+              Resource: !Sub "${BucketProductos.Arn}/*"
       
       
