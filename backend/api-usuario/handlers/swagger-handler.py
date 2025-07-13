@@ -3,12 +3,17 @@ import base64
 import mimetypes
 
 def lambda_handler(event, context):
-    # Determinar la ruta del archivo solicitado
-    base_path = os.path.join(os.environ['LAMBDA_TASK_ROOT'], 'swagger-ui')
+    # Determinar la ruta base donde están los archivos estáticos
+    base_path = os.path.join(os.path.dirname(__file__), '../swagger-ui')
     
-    # Obtener el proxy path
+    # Obtener el proxy path (la parte de la ruta después de /swagger/)
     proxy = event.get('pathParameters', {}).get('proxy', '')
-    file_path = os.path.join(base_path, proxy) if proxy else os.path.join(base_path, 'index.html')
+    
+    # Si no hay proxy, servimos index.html
+    if not proxy:
+        file_path = os.path.join(base_path, 'index.html')
+    else:
+        file_path = os.path.join(base_path, proxy)
     
     try:
         # Leer el archivo
@@ -33,10 +38,10 @@ def lambda_handler(event, context):
     except FileNotFoundError:
         return {
             'statusCode': 404,
-            'body': json.dumps({'error': 'File not found'})
+            'body': 'File not found'
         }
     except Exception as e:
         return {
             'statusCode': 500,
-            'body': json.dumps({'error': str(e)})
+            'body': f'Internal server error: {str(e)}'
         }

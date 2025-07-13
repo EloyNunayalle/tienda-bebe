@@ -16,10 +16,11 @@ provider:
 
 package:
   patterns:
-    - '!**'  # Excluir todo
-    - 'handlers/**'  # Incluir handlers
-    - 'swagger-ui/**' # Incluir archivos estáticos
-
+    - '!**'  # Excluir todo primero
+    - '!node_modules/**'
+    - 'handlers/**'
+    - 'swagger-ui/**' # Incluir todos los archivos estáticos
+    - '*.py'          # Incluir todos los archivos Python
 
 functions:
 
