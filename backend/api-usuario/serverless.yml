@@ -12,6 +12,7 @@ provider:
   environment:
     TABLE_USERS: ${sls:stage}-${self:service}-t_usuarios
     TABLE_TOKENS: ${sls:stage}-${self:service}-t_tokens
+    VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-validarToken
 
 functions:
 
