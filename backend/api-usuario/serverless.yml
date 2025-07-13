@@ -14,6 +14,13 @@ provider:
     TABLE_TOKENS: ${sls:stage}-${self:service}-t_tokens
     VALIDAR_TOKEN_FUNCTION_NAME: api-usuario-bebe-${sls:stage}-validarToken
 
+package:
+  patterns:
+    - '!**'  # Excluir todo
+    - 'handlers/**'  # Incluir handlers
+    - 'swagger-ui/**' # Incluir archivos estáticos
+
+
 functions:
 
   registrarUsuario:
@@ -43,7 +50,7 @@ functions:
     handler: ValidarTokenUsuario.lambda_handler
     
   swaggerUI:
-    handler: swagger.handler
+    handler: handlers/swagger_handler.lambda_handler
     events:
       - http:
           path: /swagger
@@ -53,7 +60,6 @@ functions:
           path: /swagger/{proxy+}
           method: get
           cors: true
-
 
 resources:
   Resources:
