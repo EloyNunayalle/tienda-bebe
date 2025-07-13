@@ -83,7 +83,7 @@ exports.handler = async (event) => {
     } = body;
 
     // 6) Validaciones mínimas
-    if (!producto_id || !name || price == null) {
+    if (!name || price == null) {
       return {
         statusCode: 400,
         headers,
