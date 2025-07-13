@@ -1,27 +1,12 @@
-const swaggerJsdoc = require('swagger-jsdoc');
 const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
 
-// Configuración de Swagger
-const options = {
-  definition: {
-    openapi: '3.0.0',
-    info: {
-      title: 'API Documentation',
-      version: '1.0.0',
-    },
-  },
-  apis: ['./*.js'], // Archivos que contienen documentación Swagger
-};
-
-// Handler principal
-module.exports.handler = async (event, context) => {
-  const html = swaggerUi.generateHTML(require('./swagger.json'));
+module.exports.handler = async (event) => {
+  const html = swaggerUi.generateHTML(swaggerDocument);
   
   return {
     statusCode: 200,
-    headers: {
-      'Content-Type': 'text/html',
-    },
+    headers: { 'Content-Type': 'text/html' },
     body: html
   };
 };
