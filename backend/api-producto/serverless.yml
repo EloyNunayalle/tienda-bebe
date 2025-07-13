@@ -23,7 +23,7 @@ provider:
 package:
   patterns:
     - '!**'  # Excluir todo primero
-    - '!node_modules/**'
+    - 'node_modules/**'
     - 'handlers/**'
     - 'docs/**' # Incluir todos los archivos estáticos
     - '*.js'          # Incluir todos los archivos Python
