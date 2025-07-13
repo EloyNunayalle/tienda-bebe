@@ -13,10 +13,12 @@ exports.handler = async (event) => {
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
+  // Soporte preflight
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers };
   }
 
+  // Token
   const rawAuth = event.headers.Authorization || event.headers.authorization || '';
   const token = rawAuth;
 
@@ -28,7 +30,7 @@ exports.handler = async (event) => {
     };
   }
 
-  // Validar token
+  // Validar token vía otra Lambda
   const tokenResult = await lambda.invoke({
     FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,
     InvocationType: 'RequestResponse',
@@ -47,7 +49,7 @@ exports.handler = async (event) => {
   const { tenant_id: tokenTenantId, rol: userRol } = JSON.parse(validation.body);
 
   return new Promise((resolve) => {
-    // ✅ Obtener Content-Type correctamente, sin importar capitalización
+    // ✅ Asegura que content-type esté disponible
     const contentType = event.headers['content-type'] || event.headers['Content-Type'];
     if (!contentType) {
       return resolve({
@@ -132,6 +134,7 @@ exports.handler = async (event) => {
       }
     });
 
+    // ⚠️ Decodifica correctamente el body (es base64 cuando se envía archivo)
     const buffer = Buffer.from(event.body, event.isBase64Encoded ? 'base64' : 'utf8');
     busboy.end(buffer);
   });
