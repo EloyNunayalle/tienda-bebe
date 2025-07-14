@@ -1,22 +1,28 @@
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = process.env.TABLE_PRODUCTOS;
+const TABLE_NAME = process.env.TABLE_PRODUCTOS;      // p.ej. "t_productos"
+// Si usas un GSI con tenant_id como PK, indícalo aquí:
+// const INDEX_NAME = 'byTenantId';
 
 exports.handler = async (event) => {
+  /*─── Cabeceras CORS ──────────────────────────────────────*/
   const headers = {
-    'Access-Control-Allow-Origin': '*', 
+    'Access-Control-Allow-Origin': '*',
     'Access-Control-Allow-Headers': '*',
     'Access-Control-Allow-Methods': 'POST, OPTIONS'
   };
 
-  
+  /*─── Respuesta inmediata a pre-flight OPTIONS ────────────*/
+  if (event.httpMethod === 'OPTIONS') {
+    return { statusCode: 200, headers };
+  }
+
   try {
-    // Parsear el body JSON
+    /*──── 1. Parsear body JSON ─────────────────────────────*/
     let body;
     try {
-      body = JSON.parse(event.body);
-    } catch (err) {
-      console.error('❌ Error parseando body:', err);
+      body = JSON.parse(event.body || '{}');
+    } catch (_) {
       return {
         statusCode: 400,
         headers,
@@ -24,37 +30,47 @@ exports.handler = async (event) => {
       };
     }
 
-    const { tenant_id: requestTenantId, limit = 5, start_key } = body;
+    const {
+      tenant_id: tenantId,
+      limit = 5,
+      start_key             // objeto o undefined
+    } = body;
 
-    // Parámetros de la consulta de DynamoDB
-    const params = {
-      TableName: TABLE_NAME,
-      Limit: limit,
-      FilterExpression: "tenant_id = :tenant_id", // Filtro para asegurar que solo se devuelvan productos del tenant correspondiente
-      ExpressionAttributeValues: {
-        ":tenant_id": requestTenantId
-      }
-    };
-
-    if (start_key) {
-      params.ExclusiveStartKey = start_key;  // Para manejar la paginación
+    if (!tenantId) {
+      return {
+        statusCode: 400,
+        headers,
+        body: JSON.stringify({ message: 'tenant_id is required' })
+      };
     }
 
-    // Realizar la consulta
-    const response = await dynamodb.scan(params).promise();
+    /*──── 2. Construir parámetros de DynamoDB.Query ───────*/
+    const params = {
+      TableName: TABLE_NAME,
+      // IndexName: INDEX_NAME,          // ← descomenta si usas un GSI
+      KeyConditionExpression: 'tenant_id = :t',
+      ExpressionAttributeValues: { ':t': tenantId },
+      Limit: limit
+    };
 
-    // Responder con los productos y el lastEvaluatedKey para la paginación
+    if (start_key) params.ExclusiveStartKey = start_key;
+
+    /*──── 3. Ejecutar Query ───────────────────────────────*/
+    const { Items = [], LastEvaluatedKey } =
+      await dynamodb.query(params).promise();
+
+    /*──── 4. Responder con el mismo formato que antes ─────*/
     return {
       statusCode: 200,
       headers,
       body: JSON.stringify({
-        productos: response.Items,
-        lastEvaluatedKey: response.LastEvaluatedKey || null  // Para manejar la paginación
+        productos: Items,
+        lastEvaluatedKey: LastEvaluatedKey || null
       })
     };
 
   } catch (err) {
-    console.error('ERROR en ListarProducto:', err);
+    console.error('❌ ERROR en ListarProducto:', err);
     return {
       statusCode: 500,
       headers,
