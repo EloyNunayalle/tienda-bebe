@@ -1,8 +1,7 @@
 const AWS = require('aws-sdk');
 const dynamodb = new AWS.DynamoDB.DocumentClient();
-const TABLE_NAME = process.env.TABLE_PRODUCTOS;      // p.ej. "t_productos"
-// Si usas un GSI con tenant_id como PK, indícalo aquí:
-// const INDEX_NAME = 'byTenantId';
+const TABLE_NAME = process.env.TABLE_PRODUCTOS;      /
+
 
 exports.handler = async (event) => {
   /*─── Cabeceras CORS ──────────────────────────────────────*/
