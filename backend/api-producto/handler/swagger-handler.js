@@ -22,7 +22,6 @@ exports.lambda_handler = async (event) => {
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
   };
 
-  // Manejar preflight OPTIONS
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -31,7 +30,6 @@ exports.lambda_handler = async (event) => {
     };
   }
 
-  // Verificar token (como en CrearProducto.js)
   const rawAuth = event.headers.Authorization || event.headers.authorization || '';
   const token = rawAuth.startsWith('Bearer ') ? rawAuth.split(' ')[1] : rawAuth;
 
@@ -44,7 +42,6 @@ exports.lambda_handler = async (event) => {
   }
 
   try {
-    // Validar token con Lambda
     const tokenResult = await lambda.invoke({
       FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,
       InvocationType: 'RequestResponse',
@@ -60,7 +57,6 @@ exports.lambda_handler = async (event) => {
       };
     }
 
-    // Servir archivos estáticos
     const basePath = path.join(__dirname, '../docs/swagger-ui');
     const proxy = event.pathParameters?.proxy || '';
     

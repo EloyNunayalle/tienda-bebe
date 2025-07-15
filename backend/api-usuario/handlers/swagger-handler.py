@@ -11,7 +11,6 @@ def lambda_handler(event, context):
         'Access-Control-Allow-Methods': 'GET, OPTIONS'
     }
 
-    # Verificación mínima de token
     token = event.get('headers', {}).get('Authorization', '')
     if not token.startswith('Bearer '):
         return {
@@ -20,7 +19,6 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': 'Token requerido'})
         }
 
-    # Validar token
     lambda_client = boto3.client('lambda')
     response = lambda_client.invoke(
         FunctionName=os.environ['VALIDAR_TOKEN_FUNCTION_NAME'],
@@ -36,7 +34,6 @@ def lambda_handler(event, context):
             'body': json.dumps({'error': 'Token inválido'})
         }
 
-    # Servir archivos
     base_path = os.path.join(os.path.dirname(__file__), '../docs/swagger-ui')
     proxy = event.get('pathParameters', {}).get('proxy', '')
     file_path = os.path.join(base_path, proxy) if proxy else os.path.join(base_path, 'index.html')

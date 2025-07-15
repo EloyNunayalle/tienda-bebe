@@ -15,7 +15,6 @@ def lambda_handler(event, context):
         'Access-Control-Allow-Methods': 'GET, OPTIONS'
     }
 
-    # Manejar preflight OPTIONS
     if event.get('httpMethod') == 'OPTIONS':
         return {
             'statusCode': 200,
@@ -23,7 +22,6 @@ def lambda_handler(event, context):
             'body': json.dumps({'message': 'Preflight OK'})
         }
 
-    # Verificar token (como en RegistrarCompra.py)
     token = event.get('headers', {}).get('Authorization') or event.get('headers', {}).get('authorization', '')
     if not token or not token.startswith('Bearer '):
         return {
@@ -33,7 +31,6 @@ def lambda_handler(event, context):
         }
 
     try:
-        # Validar token con Lambda
         lambda_client = boto3.client('lambda')
         response = lambda_client.invoke(
             FunctionName=os.environ['VALIDAR_TOKEN_FUNCTION_NAME'],
@@ -49,7 +46,6 @@ def lambda_handler(event, context):
                 'body': json.dumps({'error': 'Token inválido'})
             }
 
-        # Servir archivos estáticos
         base_path = os.path.join(os.path.dirname(__file__), '../docs/swagger-ui')
         proxy = event.get('pathParameters', {}).get('proxy', '')
         
