@@ -9,6 +9,14 @@
     {
       "url": "/dev",
       "description": "Entorno de desarrollo"
+    },
+    {
+      "url": "/test",
+      "description": "Entorno de testing"
+    },
+    {
+      "url": "/prod",
+      "description": "Producción"
     }
   ],
   "paths": {

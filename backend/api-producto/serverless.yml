@@ -97,10 +97,12 @@ functions:
           path: /docs/swagger
           method: get
           cors: true
+          authorizer: none
       - http:
           path: /docs/swagger/{proxy+}
           method: get
           cors: true
+          authorizer: none
 
 resources:
   Resources:
