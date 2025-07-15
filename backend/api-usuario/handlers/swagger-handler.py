@@ -1,6 +1,8 @@
 import os
 import base64
 import mimetypes
+import json
+import boto3
 
 def lambda_handler(event, context):
     headers = {
@@ -9,46 +11,56 @@ def lambda_handler(event, context):
         'Access-Control-Allow-Methods': 'GET, OPTIONS'
     }
 
-def lambda_handler(event, context):
-    # Determinar la ruta base donde están los archivos estáticos
+    # Verificación mínima de token
+    token = event.get('headers', {}).get('Authorization', '')
+    if not token.startswith('Bearer '):
+        return {
+            'statusCode': 401,
+            'headers': headers,
+            'body': json.dumps({'error': 'Token requerido'})
+        }
+
+    # Validar token
+    lambda_client = boto3.client('lambda')
+    response = lambda_client.invoke(
+        FunctionName=os.environ['VALIDAR_TOKEN_FUNCTION_NAME'],
+        InvocationType='RequestResponse',
+        Payload=json.dumps({"token": token.split(' ')[1]})
+    )
+    validation = json.loads(response['Payload'].read())
+    
+    if validation['statusCode'] != 200:
+        return {
+            'statusCode': 403,
+            'headers': headers,
+            'body': json.dumps({'error': 'Token inválido'})
+        }
+
+    # Servir archivos
     base_path = os.path.join(os.path.dirname(__file__), '../docs/swagger-ui')
-    
-    # Obtener el proxy path (la parte de la ruta después de /swagger/)
     proxy = event.get('pathParameters', {}).get('proxy', '')
-    
-    # Si no hay proxy, servimos index.html
-    if not proxy:
-        file_path = os.path.join(base_path, 'index.html')
-    else:
-        file_path = os.path.join(base_path, proxy)
+    file_path = os.path.join(base_path, proxy) if proxy else os.path.join(base_path, 'index.html')
     
     try:
-        # Leer el archivo
         with open(file_path, 'rb') as file:
-            content = file.read()
-        
-        # Determinar el tipo MIME
-        mime_type, _ = mimetypes.guess_type(file_path)
-        if not mime_type:
-            mime_type = 'application/octet-stream'
-        
-        return {
-            'statusCode': 200,
-            'headers': {
-                'Content-Type': mime_type,
-                'Access-Control-Allow-Origin': '*'
-            },
-            'body': base64.b64encode(content).decode('utf-8'),
-            'isBase64Encoded': True
-        }
-    
+            return {
+                'statusCode': 200,
+                'headers': {
+                    **headers,
+                    'Content-Type': mimetypes.guess_type(file_path)[0] or 'application/octet-stream'
+                },
+                'body': base64.b64encode(file.read()).decode('utf-8'),
+                'isBase64Encoded': True
+            }
     except FileNotFoundError:
         return {
             'statusCode': 404,
-            'body': 'File not found'
+            'headers': headers,
+            'body': json.dumps({'error': 'Archivo no encontrado'})
         }
     except Exception as e:
         return {
             'statusCode': 500,
-            'body': f'Internal server error: {str(e)}'
+            'headers': headers,
+            'body': json.dumps({'error': str(e)})
         }

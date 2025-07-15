@@ -1,5 +1,7 @@
 const fs = require('fs');
 const path = require('path');
+const AWS = require('aws-sdk');
+const lambda = new AWS.Lambda();
 
 const mimeTypes = {
   '.html': 'text/html',
@@ -20,24 +22,61 @@ exports.lambda_handler = async (event) => {
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
   };
 
+  // Manejar preflight OPTIONS
+  if (event.httpMethod === 'OPTIONS') {
+    return {
+      statusCode: 200,
+      headers,
+      body: JSON.stringify({ message: 'Preflight OK' })
+    };
+  }
+
+  // Verificar token (como en CrearProducto.js)
+  const rawAuth = event.headers.Authorization || event.headers.authorization || '';
+  const token = rawAuth.startsWith('Bearer ') ? rawAuth.split(' ')[1] : rawAuth;
+
+  if (!token) {
+    return {
+      statusCode: 401,
+      headers,
+      body: JSON.stringify({ error: 'Token no proporcionado' })
+    };
+  }
+
   try {
-    // Ruta base donde están los archivos estáticos
+    // Validar token con Lambda
+    const tokenResult = await lambda.invoke({
+      FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,
+      InvocationType: 'RequestResponse',
+      Payload: JSON.stringify({ token })
+    }).promise();
+
+    const validation = JSON.parse(tokenResult.Payload);
+    if (validation.statusCode !== 200) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Token inválido o expirado' })
+      };
+    }
+
+    // Servir archivos estáticos
     const basePath = path.join(__dirname, '../docs/swagger-ui');
-    
-    // Obtener el proxy path
     const proxy = event.pathParameters?.proxy || '';
     
-    // Determinar el archivo a servir
+    if (proxy.includes('..')) {
+      return {
+        statusCode: 403,
+        headers,
+        body: JSON.stringify({ error: 'Path traversal no permitido' })
+      };
+    }
+
     const filePath = proxy 
       ? path.join(basePath, proxy)
       : path.join(basePath, 'index.html');
 
-    console.log(`Serving file: ${filePath}`);
-    
-    // Leer el archivo
     const fileContent = fs.readFileSync(filePath);
-    
-    // Determinar el tipo MIME
     const ext = path.extname(filePath);
     const contentType = mimeTypes[ext] || 'application/octet-stream';
 
@@ -50,22 +89,20 @@ exports.lambda_handler = async (event) => {
       body: fileContent.toString('base64'),
       isBase64Encoded: true
     };
-    
+
   } catch (error) {
+    console.error('Error:', error);
     if (error.code === 'ENOENT') {
-      console.error('File not found:', error.path);
       return {
         statusCode: 404,
         headers,
-        body: JSON.stringify({ error: 'File not found' })
+        body: JSON.stringify({ error: 'Archivo no encontrado' })
       };
     }
-    
-    console.error('Error:', error);
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Internal server error' })
+      body: JSON.stringify({ error: 'Error interno del servidor' })
     };
   }
 };
