@@ -59,5 +59,37 @@ async def indexar(request: Request):
 
     return {"status": res.status_code, "message": f"{evento} procesado para {tenant_id}"}
 
+
+@app.post("/buscar")
+async def buscar(request: Request):
+    data = await request.json()
+    tenant_id = data.get("tenant_id")
+    query = data.get("query")
+
+    if not tenant_id or not query:
+        return {"error": "Falta tenant_id o query"}
+
+    puerto = ensure_es_container(tenant_id)
+    es_url = f"http://localhost:{puerto}/productos/_search"
+
+    consulta = {
+        "query": {
+            "match": {
+                "nombre": {
+                    "query": query,
+                    "fuzziness": "AUTO"
+                }
+            }
+        }
+    }
+
+    try:
+        async with httpx.AsyncClient() as client_http:
+            respuesta = await client_http.post(es_url, json=consulta)
+            return respuesta.json()
+    except Exception as e:
+        return {"error": f"No se pudo conectar al contenedor ES: {str(e)}"}
+
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
