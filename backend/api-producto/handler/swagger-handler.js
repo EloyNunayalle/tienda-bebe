@@ -18,11 +18,11 @@ const mimeTypes = {
 exports.lambda_handler = async (event) => {
   const headers = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Headers': '*',
+    'Access-Control-Allow-Headers': 'Content-Type, Authorization',
     'Access-Control-Allow-Methods': 'GET, OPTIONS'
   };
 
-  // Manejar preflight OPTIONS
+  // 1. Manejar preflight OPTIONS
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
@@ -31,7 +31,56 @@ exports.lambda_handler = async (event) => {
     };
   }
 
-  // Verificar token (como en CrearProducto.js)
+  // 2. Servir archivos estáticos SIN verificación de token para Swagger UI
+  const requestPath = event.path || '';
+  if (requestPath.includes('/docs/swagger')) {
+    try {
+      const basePath = path.join(__dirname, '../docs/swagger-ui');
+      const proxy = event.pathParameters?.proxy || '';
+      
+      if (proxy.includes('..')) {
+        return {
+          statusCode: 403,
+          headers,
+          body: JSON.stringify({ error: 'Path traversal no permitido' })
+        };
+      }
+
+      const filePath = proxy 
+        ? path.join(basePath, proxy)
+        : path.join(basePath, 'index.html');
+
+      const fileContent = fs.readFileSync(filePath);
+      const ext = path.extname(filePath);
+      const contentType = mimeTypes[ext] || 'application/octet-stream';
+
+      return {
+        statusCode: 200,
+        headers: {
+          ...headers,
+          'Content-Type': contentType
+        },
+        body: fileContent.toString('base64'),
+        isBase64Encoded: true
+      };
+    } catch (error) {
+      console.error('Error:', error);
+      if (error.code === 'ENOENT') {
+        return {
+          statusCode: 404,
+          headers,
+          body: JSON.stringify({ error: 'Archivo no encontrado' })
+        };
+      }
+      return {
+        statusCode: 500,
+        headers,
+        body: JSON.stringify({ error: 'Error interno del servidor' })
+      };
+    }
+  }
+
+  // 3. Para otras rutas: Verificación estricta de token
   const rawAuth = event.headers.Authorization || event.headers.authorization || '';
   const token = rawAuth.startsWith('Bearer ') ? rawAuth.split(' ')[1] : rawAuth;
 
@@ -44,7 +93,6 @@ exports.lambda_handler = async (event) => {
   }
 
   try {
-    // Validar token con Lambda
     const tokenResult = await lambda.invoke({
       FunctionName: process.env.VALIDAR_TOKEN_FUNCTION_NAME,
       InvocationType: 'RequestResponse',
@@ -60,49 +108,18 @@ exports.lambda_handler = async (event) => {
       };
     }
 
-    // Servir archivos estáticos
-    const basePath = path.join(__dirname, '../docs/swagger-ui');
-    const proxy = event.pathParameters?.proxy || '';
-    
-    if (proxy.includes('..')) {
-      return {
-        statusCode: 403,
-        headers,
-        body: JSON.stringify({ error: 'Path traversal no permitido' })
-      };
-    }
-
-    const filePath = proxy 
-      ? path.join(basePath, proxy)
-      : path.join(basePath, 'index.html');
-
-    const fileContent = fs.readFileSync(filePath);
-    const ext = path.extname(filePath);
-    const contentType = mimeTypes[ext] || 'application/octet-stream';
-
     return {
       statusCode: 200,
-      headers: {
-        ...headers,
-        'Content-Type': contentType
-      },
-      body: fileContent.toString('base64'),
-      isBase64Encoded: true
+      headers,
+      body: JSON.stringify({ message: 'Acceso autorizado' })
     };
 
   } catch (error) {
     console.error('Error:', error);
-    if (error.code === 'ENOENT') {
-      return {
-        statusCode: 404,
-        headers,
-        body: JSON.stringify({ error: 'Archivo no encontrado' })
-      };
-    }
     return {
       statusCode: 500,
       headers,
-      body: JSON.stringify({ error: 'Error interno del servidor' })
+      body: JSON.stringify({ error: 'Error al validar token' })
     };
   }
 };
