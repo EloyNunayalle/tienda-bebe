@@ -16,7 +16,7 @@
     const service = window.location.pathname.split('/')[1] || 'usuario';
     
     window.ui = SwaggerUIBundle({
-      url: `./api_${service}.yaml`,
+      url: `./api-${service}.yaml`,
       dom_id: '#swagger-ui',
       presets: [
         SwaggerUIBundle.presets.apis,
