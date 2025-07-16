@@ -1,30 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8">
-    <title>Swagger UI</title>
-    <link rel="stylesheet" type="text/css" href="./swagger-ui.css" />
-    <link rel="stylesheet" type="text/css" href="index.css" />
-    <link rel="icon" type="image/png" href="./favicon-32x32.png" sizes="32x32" />
-    <link rel="icon" type="image/png" href="./favicon-16x16.png" sizes="16x16" />
-  </head>
-
-  <body>
-    <div id="swagger-ui"></div>
-    <script src="./swagger-ui-bundle.js" charset="UTF-8"> </script>
-    <script src="./swagger-ui-standalone-preset.js" charset="UTF-8"> </script>
-    <script>
-    window.onload = function() {
-      window.ui = SwaggerUIBundle({
-        url: "./api_usuario.yaml",  <!-- Ruta al archivo YAML -->
-        dom_id: '#swagger-ui',
-        presets: [
-          SwaggerUIBundle.presets.apis,
-          SwaggerUIStandalonePreset
-        ],
-        layout: "StandaloneLayout"
-      });
-    };
-    </script>
-  </body>
+<head>
+  <meta charset="UTF-8">
+  <title>API Documentation</title>
+  <link rel="stylesheet" href="./swagger-ui.css">
+  <link rel="icon" href="./favicon-32x32.png" sizes="32x32">
+  <link rel="icon" href="./favicon-16x16.png" sizes="16x16">
+</head>
+<body>
+  <div id="swagger-ui"></div>
+  <script src="./swagger-ui-bundle.js"></script>
+  <script src="./swagger-ui-standalone-preset.js"></script>
+  <script>
+  window.onload = function() {
+    const service = window.location.pathname.split('/')[1] || 'usuario';
+    
+    window.ui = SwaggerUIBundle({
+      url: `./api_${service}.yaml`,
+      dom_id: '#swagger-ui',
+      presets: [
+        SwaggerUIBundle.presets.apis,
+        SwaggerUIStandalonePreset
+      ],
+      layout: "StandaloneLayout",
+      deepLinking: true,
+      persistAuthorization: true,
+      requestInterceptor: (req) => {
+        if (req.url.includes('/api/') && localStorage.getItem('token')) {
+          req.headers.Authorization = localStorage.getItem('token');
+        }
+        return req;
+      }
+    });
+  };
+  </script>
+</body>
 </html>
